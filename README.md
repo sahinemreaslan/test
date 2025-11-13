@@ -13,8 +13,9 @@ This system implements a sophisticated trading strategy based on:
    - Outside Bar - Volatility Expansion
 
 2. **Multi-Timeframe Analysis**
-   - Analyzes 13 timeframes: 3M, 1M, 1W, 1D, 12h, 8h, 4h, 2h, 1h, 30m, 15m, 10m, 5m
-   - Each timeframe provides context for smaller timeframes
+   - Analyzes 11 timeframes: 3M, 1M, 1W, 1D, 12h, 8h, 4h, 2h, 1h, 30m, 15m
+   - Base data is 15m, can only create LARGER timeframes (not 10m or 5m)
+   - Each timeframe provides context for analysis
    - Weighted according to importance
 
 3. **Technical Indicators**

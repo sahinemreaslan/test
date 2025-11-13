@@ -6,6 +6,7 @@ data:
 
 timeframes:
   # All timeframes to analyze (from largest to smallest)
+  # NOTE: Base data is 15m, so we can only create LARGER timeframes
   all:
     - "3M"   # Quarterly
     - "1M"   # Monthly
@@ -17,12 +18,10 @@ timeframes:
     - "2h"
     - "1h"
     - "30m"
-    - "15m"
-    - "10m"
-    - "5m"   # Trading timeframe
+    - "15m"  # Base timeframe (same as data)
 
-  # Trading timeframe
-  trading: "5m"
+  # Trading timeframe (must be >= base timeframe)
+  trading: "15m"
 
   # Signal generation timeframe
   signal: "15m"
@@ -135,7 +134,7 @@ backtesting:
   optimization_metric: "sharpe_ratio"  # Options: sharpe_ratio, calmar_ratio, profit_factor, sortino_ratio
 
   # Minimum trade requirements
-  min_trades: 30
+  min_trades: 50  # Increased due to 15m timeframe (fewer signals)
 
 output:
   results_dir: "results"
