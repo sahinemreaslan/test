@@ -232,15 +232,23 @@ class XGBoostPredictor:
 
         logger.info(f"Average CV Metrics: {avg_metrics}")
 
-        # Train final model on all data
+        # Train final model on all data (with validation set for early stopping)
         scale_pos_weight = (y == 0).sum() / (y == 1).sum() if (y == 1).sum() > 0 else 1.0
+
+        # Split for validation (last 20%)
+        split_idx = int(len(X) * 0.8)
+        X_train_final = X.iloc[:split_idx]
+        y_train_final = y.iloc[:split_idx]
+        X_val_final = X.iloc[split_idx:]
+        y_val_final = y.iloc[split_idx:]
 
         self.model = xgb.XGBClassifier(
             **self.model_params,
             scale_pos_weight=scale_pos_weight
         )
 
-        self.model.fit(X, y, verbose=verbose)
+        eval_set = [(X_train_final, y_train_final), (X_val_final, y_val_final)]
+        self.model.fit(X_train_final, y_train_final, eval_set=eval_set, verbose=verbose)
 
         return avg_metrics
 
