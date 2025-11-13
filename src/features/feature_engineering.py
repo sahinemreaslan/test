@@ -83,9 +83,11 @@ class FeatureEngineer:
         ref_df = timeframe_data[reference_tf].copy()
         feature_df = pd.DataFrame(index=ref_df.index)
 
-        # Add reference timeframe features (with prefix)
+        # Add reference timeframe features (with prefix) - use dict to avoid fragmentation
+        ref_cols = {}
         for col in ref_df.columns:
-            feature_df[f'{reference_tf}_{col}'] = ref_df[col]
+            ref_cols[f'{reference_tf}_{col}'] = ref_df[col]
+        feature_df = pd.DataFrame(ref_cols, index=ref_df.index)
 
         # Add features from other timeframes
         for tf, df in timeframe_data.items():
