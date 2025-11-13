@@ -14,16 +14,16 @@ class TimeframeConverter:
     """Convert base timeframe to multiple higher timeframes"""
 
     # Mapping of timeframe strings to pandas resample rules
+    # NOTE: Can only convert to LARGER timeframes than base data
+    # If base data is 15m, you cannot create 5m or 10m
     TIMEFRAME_MAP = {
-        '5m': '5T',
-        '10m': '10T',
-        '15m': '15T',
-        '30m': '30T',
-        '1h': '1H',
-        '2h': '2H',
-        '4h': '4H',
-        '8h': '8H',
-        '12h': '12H',
+        '15m': '15min',
+        '30m': '30min',
+        '1h': '1h',
+        '2h': '2h',
+        '4h': '4h',
+        '8h': '8h',
+        '12h': '12h',
         '1D': '1D',
         '1W': '1W',
         '1M': '1MS',  # Month start
@@ -149,8 +149,6 @@ class TimeframeConverter:
         """
         # Convert to minutes
         minutes_map = {
-            '5m': 5,
-            '10m': 10,
             '15m': 15,
             '30m': 30,
             '1h': 60,

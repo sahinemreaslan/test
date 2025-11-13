@@ -96,15 +96,13 @@ def calculate_periods_per_year(timeframe: str) -> int:
     Calculate number of periods per year for a given timeframe
 
     Args:
-        timeframe: Timeframe string (e.g., '5m', '1h', '1D')
+        timeframe: Timeframe string (e.g., '15m', '1h', '1D')
 
     Returns:
         Number of periods per year
     """
     # Map timeframe to minutes
     minutes_map = {
-        '5m': 5,
-        '10m': 10,
         '15m': 15,
         '30m': 30,
         '1h': 60,
@@ -118,7 +116,7 @@ def calculate_periods_per_year(timeframe: str) -> int:
         '3M': 129600
     }
 
-    minutes = minutes_map.get(timeframe, 5)
+    minutes = minutes_map.get(timeframe, 15)
     periods_per_year = int(365 * 24 * 60 / minutes)
 
     return periods_per_year
