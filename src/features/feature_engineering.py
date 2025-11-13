@@ -107,7 +107,7 @@ class FeatureEngineer:
         feature_df = self._add_cross_timeframe_features(feature_df, timeframe_data.keys())
 
         # Fill any remaining NaN values
-        feature_df = feature_df.fillna(method='ffill').fillna(method='bfill').fillna(0)
+        feature_df = feature_df.ffill().bfill().fillna(0)
 
         logger.info(f"Created feature matrix with {len(feature_df.columns)} features")
 
