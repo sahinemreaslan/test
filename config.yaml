@@ -1,0 +1,146 @@
+# Fractal Multi-Timeframe Trading Strategy Configuration
+
+data:
+  file_path: "btc_15m_data_2018_to_2025.csv"
+  base_timeframe: "15m"
+
+timeframes:
+  # All timeframes to analyze (from largest to smallest)
+  all:
+    - "3M"   # Quarterly
+    - "1M"   # Monthly
+    - "1W"   # Weekly
+    - "1D"   # Daily
+    - "12h"
+    - "8h"
+    - "4h"
+    - "2h"
+    - "1h"
+    - "30m"
+    - "15m"
+    - "10m"
+    - "5m"   # Trading timeframe
+
+  # Trading timeframe
+  trading: "5m"
+
+  # Signal generation timeframe
+  signal: "15m"
+
+fractal:
+  # Fractal candle relationship types
+  patterns:
+    HHHL: "Higher High Higher Low (Bullish Power)"
+    HLLH: "Lower High Lower Low (Bearish Power)"
+    INSIDE: "Inside Bar (Consolidation)"
+    OUTSIDE: "Outside Bar (Volatility Expansion)"
+
+indicators:
+  rsi:
+    periods: [14, 21, 28]
+
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+
+  bollinger:
+    period: 20
+    std_dev: 2
+
+  stochastic:
+    k_period: 14
+    d_period: 3
+    smooth_k: 3
+
+  atr:
+    period: 14
+
+  ema:
+    periods: [9, 21, 50, 100, 200]
+
+  volume:
+    ma_period: 20
+
+genetic_algorithm:
+  population_size: 100
+  generations: 50
+  crossover_prob: 0.7
+  mutation_prob: 0.2
+  tournament_size: 3
+  elite_size: 5
+
+  # Parameter ranges for optimization
+  parameters:
+    # Timeframe weights (0-10)
+    timeframe_weights:
+      min: 0.0
+      max: 10.0
+
+    # Indicator weights (0-5)
+    indicator_weights:
+      min: 0.0
+      max: 5.0
+
+    # RSI thresholds
+    rsi_oversold:
+      min: 20
+      max: 35
+    rsi_overbought:
+      min: 65
+      max: 80
+
+    # Stop loss (ATR multiplier)
+    stop_loss_atr:
+      min: 1.0
+      max: 3.0
+
+    # Take profit (ATR multiplier)
+    take_profit_atr:
+      min: 2.0
+      max: 6.0
+
+    # Position sizing (% of capital)
+    position_size:
+      min: 0.01
+      max: 0.1
+
+xgboost:
+  model_params:
+    max_depth: 6
+    learning_rate: 0.1
+    n_estimators: 100
+    objective: "binary:logistic"
+    eval_metric: "auc"
+    early_stopping_rounds: 10
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+
+  train_params:
+    test_size: 0.2
+    validation_size: 0.1
+    cv_folds: 5
+
+backtesting:
+  initial_capital: 10000
+  commission: 0.001  # 0.1%
+  slippage: 0.0005   # 0.05%
+
+  # Risk management
+  max_positions: 1
+  max_drawdown_percent: 20
+
+  # Performance metrics to optimize
+  optimization_metric: "sharpe_ratio"  # Options: sharpe_ratio, calmar_ratio, profit_factor, sortino_ratio
+
+  # Minimum trade requirements
+  min_trades: 30
+
+output:
+  results_dir: "results"
+  models_dir: "models"
+  plots_dir: "plots"
+  save_predictions: true
+  save_equity_curve: true
+  verbose: true
