@@ -100,8 +100,15 @@ class FeatureEngineer:
             # Select important features to include
             important_features = self._get_important_features(aligned_df)
 
+            # Collect columns to add in a temporary dict (avoid fragmentation)
+            temp_cols = {}
             for col in important_features:
-                feature_df[f'{tf}_{col}'] = aligned_df[col]
+                temp_cols[f'{tf}_{col}'] = aligned_df[col]
+
+            # Add all columns at once using pd.concat (much faster)
+            if temp_cols:
+                temp_df = pd.DataFrame(temp_cols, index=ref_df.index)
+                feature_df = pd.concat([feature_df, temp_df], axis=1)
 
         # Add cross-timeframe features
         feature_df = self._add_cross_timeframe_features(feature_df, timeframe_data.keys())

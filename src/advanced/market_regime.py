@@ -84,8 +84,9 @@ class MarketRegimeDetector:
         if 'high' in df.columns and 'low' in df.columns:
             features['range'] = (df['high'] - df['low']) / df['close']
 
-        # Drop NaN
-        features = features.dropna()
+        # Handle inf and NaN
+        features = features.replace([np.inf, -np.inf], np.nan)
+        features = features.ffill().bfill().fillna(0)
 
         return features
 
