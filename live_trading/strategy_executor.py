@@ -68,11 +68,27 @@ class StrategyExecutor:
             timeframes = self.config.get('timeframes', {}).get('all', [
                 '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
             ])
-            all_timeframes = tf_converter.convert_all_timeframes(timeframes)
+            all_timeframes_raw = tf_converter.convert_all_timeframes(timeframes)
 
-            # Create features
-            logger.info("Creating features...")
-            features, target, df = self.feature_eng.create_features(all_timeframes)
+            # Process each timeframe (calculate indicators)
+            logger.info("Processing indicators for each timeframe...")
+            all_timeframes = {}
+            for tf, tf_df in all_timeframes_raw.items():
+                all_timeframes[tf] = self.feature_eng.process_single_timeframe(tf_df, tf)
+
+            # Create multi-timeframe feature matrix
+            logger.info("Creating multi-timeframe features...")
+            reference_tf = self.config.get('timeframes', {}).get('signal', '15m')
+            df = self.feature_eng.create_multi_timeframe_features(all_timeframes, reference_tf)
+
+            # Prepare ML dataset (features and target)
+            logger.info("Preparing ML dataset...")
+            features, target = self.feature_eng.prepare_ml_dataset(
+                df,
+                target_method='forward_returns',
+                target_horizon=1,
+                target_threshold=0.001
+            )
 
             logger.info(f"Features created: {features.shape}")
             logger.info(f"Target distribution: {target.value_counts().to_dict()}")
@@ -119,10 +135,24 @@ class StrategyExecutor:
             timeframes = self.config.get('timeframes', {}).get('all', [
                 '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
             ])
-            all_timeframes = tf_converter.convert_all_timeframes(timeframes)
+            all_timeframes_raw = tf_converter.convert_all_timeframes(timeframes)
 
-            # Create features
-            features, target, df = self.feature_eng.create_features(all_timeframes)
+            # Process each timeframe (calculate indicators)
+            all_timeframes = {}
+            for tf, tf_df in all_timeframes_raw.items():
+                all_timeframes[tf] = self.feature_eng.process_single_timeframe(tf_df, tf)
+
+            # Create multi-timeframe feature matrix
+            reference_tf = self.config.get('timeframes', {}).get('signal', '15m')
+            df = self.feature_eng.create_multi_timeframe_features(all_timeframes, reference_tf)
+
+            # Prepare ML dataset (features and target)
+            features, target = self.feature_eng.prepare_ml_dataset(
+                df,
+                target_method='forward_returns',
+                target_horizon=1,
+                target_threshold=0.001
+            )
 
             # Generate signals
             signals = self.advanced_system.generate_signals(df, features)
