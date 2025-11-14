@@ -310,8 +310,8 @@ class WalkForwardAnalyzer:
         backtester = Backtester(self.config)
         equity_curve, trades = backtester.run(df, signals, params, verbose=False)
 
-        # Calculate metrics
-        metrics = backtester.calculate_metrics(equity_curve, trades)
+        # Get metrics
+        metrics = backtester.get_metrics()
 
         # Print summary
         logger.info(f"\n{label.upper()} RESULTS:")

@@ -42,6 +42,11 @@ results/
 logs/
 *.log
 
+# ML Training artifacts
+catboost_info/
+mlruns/
+wandb/
+
 # Data files (optional - uncomment if you don't want to track data)
 # *.csv
 # *.parquet
