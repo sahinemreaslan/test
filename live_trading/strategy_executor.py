@@ -155,8 +155,9 @@ class StrategyExecutor:
                 target_threshold=0.001
             )
 
-            # Generate signals
-            signals = self.advanced_system.generate_signals(df, features)
+            # Generate signals (pass OHLCV data for regime detection)
+            reference_ohlcv = all_timeframes[reference_tf]  # Original OHLCV with indicators
+            signals = self.advanced_system.generate_signals(reference_ohlcv, features)
 
             # Get last signal
             signal = int(signals.iloc[-1])
