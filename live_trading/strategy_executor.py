@@ -16,7 +16,7 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.advanced.integrated_system import AdvancedTradingSystem
-from src.features.feature_engineering import FeatureEngineering
+from src.features.feature_engineering import FeatureEngineer
 from src.data.timeframe_converter import TimeframeConverter
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class StrategyExecutor:
             config: Configuration dictionary
         """
         self.config = config
-        self.feature_eng = FeatureEngineering(config)
+        self.feature_eng = FeatureEngineer(config)
         self.tf_converter = TimeframeConverter()
 
         # Advanced trading system
