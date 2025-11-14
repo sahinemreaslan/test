@@ -194,7 +194,7 @@ class WalkForwardAnalyzer:
             logger.info(f"  Sharpe: {results['sharpe_ratio']:.3f}")
             logger.info(f"  Max DD: {results['max_drawdown']:.2%}")
             logger.info(f"  Win Rate: {results['win_rate']:.2%}")
-            logger.info(f"  Trades: {results['num_trades']}")
+            logger.info(f"  Trades: {results['total_trades']}")
 
         return annual_results
 
@@ -319,7 +319,7 @@ class WalkForwardAnalyzer:
         logger.info(f"  Sharpe Ratio: {metrics['sharpe_ratio']:.3f}")
         logger.info(f"  Max Drawdown: {metrics['max_drawdown']:.2%}")
         logger.info(f"  Win Rate: {metrics['win_rate']:.2%}")
-        logger.info(f"  Total Trades: {metrics['num_trades']}")
+        logger.info(f"  Total Trades: {metrics['total_trades']}")
 
         # Save results
         results_dir = self.config.get('output', {}).get('results_dir', 'results')
