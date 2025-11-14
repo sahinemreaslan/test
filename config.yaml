@@ -128,8 +128,8 @@ backtesting:
   commission: 0.001  # 0.1% (maker/taker average for Binance)
   slippage: 0.0005   # 0.05% (market impact)
 
-  # Leverage settings
-  leverage: 5        # 1x = no leverage, 2x, 3x, 5x, 10x etc.
+  # Leverage settings (OPTIMIZED for crash protection)
+  leverage: 3        # Reduced from 5x to 3x (safer, less liquidation risk)
   max_leverage: 10   # Maximum allowed leverage
 
   # Margin requirements
@@ -138,12 +138,16 @@ backtesting:
 
   # Advanced position management
   enable_trailing_stop: true      # Enable trailing stop loss
-  trailing_stop_pct: 0.02         # Trail 2% below highest price
+  trailing_stop_pct: 0.025        # Increased from 2% to 2.5% (wider trail = crash protection)
   enable_partial_exit: true       # Enable partial profit taking
   partial_exit_percentage: 0.5    # Close 50% at first TP target
   enable_position_scaling: true   # Enable pyramiding (add to winners)
-  max_scale_ins: 2                # Maximum number of scale-ins per position
+  max_scale_ins: 1                # Reduced from 2 to 1 (less aggressive = safer in crashes)
   scale_size_multiplier: 0.5      # Each scale-in is 50% of initial position size
+
+  # Crash protection (new safety parameters)
+  extreme_volatility_threshold: 0.05  # If volatility > 5%, activate crash protection
+  max_drawdown_for_scaling: 0.10      # Don't scale if currently in >10% drawdown
 
   # Risk management
   max_positions: 1

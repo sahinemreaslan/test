@@ -588,6 +588,8 @@ class Backtester:
         - Position is in profit
         - Strong trend in position direction
         - Haven't scaled too many times
+        - NOT in extreme volatility (crash protection)
+        - NOT in significant drawdown
 
         Returns:
             True if scaled, False otherwise
@@ -600,8 +602,27 @@ class Backtester:
 
         position = self.positions[0]  # Assuming max_positions = 1
 
+        # CRASH PROTECTION: Check extreme volatility
+        current_vol = row.get('volatility', 0.02)
+        extreme_vol_threshold = self.backtest_config.get('extreme_volatility_threshold', 0.05)
+        if current_vol > extreme_vol_threshold:
+            logger.debug(f"Position scaling disabled: Extreme volatility ({current_vol:.3f} > {extreme_vol_threshold})")
+            return False
+
+        # CRASH PROTECTION: Check current drawdown
+        current_price = row['close']
+        equity = self._calculate_equity(current_price)
+        if hasattr(self, 'equity_curve') and self.equity_curve:
+            peak_equity = max(eq for _, eq in self.equity_curve)
+            current_drawdown = (peak_equity - equity) / peak_equity if peak_equity > 0 else 0
+            max_dd_for_scaling = self.backtest_config.get('max_drawdown_for_scaling', 0.10)
+
+            if current_drawdown > max_dd_for_scaling:
+                logger.debug(f"Position scaling disabled: In drawdown ({current_drawdown:.2%} > {max_dd_for_scaling:.2%})")
+                return False
+
         # Check if already scaled maximum times
-        max_scale_ins = self.backtest_config.get('max_scale_ins', 2)
+        max_scale_ins = self.backtest_config.get('max_scale_ins', 1)
         if hasattr(position, 'scale_in_count') and position.scale_in_count >= max_scale_ins:
             return False
 
@@ -610,7 +631,6 @@ class Backtester:
             return False
 
         # Check if position is in profit (at least 1 ATR)
-        current_price = row['close']
         atr = row.get('atr', current_price * 0.02)
         profit = (current_price - position.entry_price) if position.side == OrderSide.BUY else (position.entry_price - current_price)
 
