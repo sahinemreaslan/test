@@ -23,13 +23,19 @@ from strategy_executor import StrategyExecutor
 class LiveTradingBot:
     """Live trading bot for Binance Futures"""
 
-    def __init__(self, config_path: str = "config_live.yaml"):
-        """Initialize the trading bot"""
+    def __init__(self, config_path: str = "config_live.yaml", model_path: Optional[str] = None):
+        """Initialize the trading bot
+
+        Args:
+            config_path: Path to config file
+            model_path: Path to pre-trained model (optional)
+        """
         # Setup logging
         self._setup_logging()
 
         # Load configuration
         self.config = self._load_config(config_path)
+        self.model_path = model_path
 
         # Load API credentials
         load_dotenv()
@@ -120,20 +126,33 @@ class LiveTradingBot:
             self.binance.set_margin_type(self.symbol, "CROSSED")
             self.binance.set_leverage(self.symbol, self.leverage)
 
-            # Download historical data for training
-            logger.info(f"\n📊 Downloading historical data...")
-            historical_data = self.binance.get_historical_klines(
-                symbol=self.symbol,
-                interval="15m",
-                limit=1500  # ~15 days of 15m candles
-            )
+            # Check if using pre-trained model
+            if self.model_path and os.path.exists(self.model_path):
+                logger.info(f"\n📦 Loading pre-trained model from: {self.model_path}")
+                import pickle
+                with open(self.model_path, 'rb') as f:
+                    self.strategy.advanced_system = pickle.load(f)
+                self.strategy.trained = True
+                logger.info("✅ Pre-trained model loaded successfully!")
+            else:
+                if self.model_path:
+                    logger.warning(f"⚠️ Model not found: {self.model_path}")
+                    logger.info("🎓 Falling back to fresh training...")
 
-            if len(historical_data) < 300:
-                raise ValueError("❌ Not enough historical data for training")
+                # Download historical data for training
+                logger.info(f"\n📊 Downloading historical data...")
+                historical_data = self.binance.get_historical_klines(
+                    symbol=self.symbol,
+                    interval="15m",
+                    limit=1500  # ~15 days of 15m candles
+                )
 
-            # Train strategy
-            logger.info(f"\n🎓 Training strategy...")
-            self.strategy.train_strategy(historical_data)
+                if len(historical_data) < 300:
+                    raise ValueError("❌ Not enough historical data for training")
+
+                # Train strategy
+                logger.info(f"\n🎓 Training strategy...")
+                self.strategy.train_strategy(historical_data)
 
             logger.info("\n" + "="*70)
             logger.info("✅ INITIALIZATION COMPLETE!")
@@ -359,5 +378,14 @@ class LiveTradingBot:
 
 
 if __name__ == "__main__":
-    bot = LiveTradingBot()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Bitcoin Live Trading Bot')
+    parser.add_argument('--model', type=str, default=None,
+                       help='Path to pre-trained model (optional)')
+    parser.add_argument('--config', type=str, default='config_live.yaml',
+                       help='Path to config file')
+    args = parser.parse_args()
+
+    bot = LiveTradingBot(config_path=args.config, model_path=args.model)
     bot.run()
