@@ -22,3 +22,7 @@ python-telegram-bot==20.7  # Telegram bildirimleri için
 
 # System monitoring
 psutil==5.9.6
+
+# Dashboard
+streamlit==1.29.0
+plotly==5.18.0

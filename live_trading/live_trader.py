@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from binance_connector import BinanceConnector
 from strategy_executor import StrategyExecutor
+from dashboard_data import DashboardDataManager
 
 
 class LiveTradingBot:
@@ -50,6 +51,9 @@ class LiveTradingBot:
         self.binance = BinanceConnector(api_key, api_secret, testnet=testnet)
         self.strategy = StrategyExecutor(self.config)
 
+        # Initialize dashboard data manager
+        self.dashboard = DashboardDataManager()
+
         # Trading parameters
         self.symbol = self.config.get('trading', {}).get('symbol', 'BTCUSDT')
         self.leverage = self.config.get('trading', {}).get('leverage', 3)
@@ -61,6 +65,7 @@ class LiveTradingBot:
         self.last_check_time = None
         self.position_opened_at = None
         self.trades_count = 0
+        self.start_balance = 0
 
         logger.info("="*70)
         logger.info("🤖 BITCOIN LIVE TRADING BOT INITIALIZED")
@@ -120,6 +125,13 @@ class LiveTradingBot:
             balance = self.binance.get_account_balance()
             if balance['available_balance'] < 10:
                 raise ValueError(f"❌ Insufficient balance: {balance['available_balance']} USDT")
+
+            # Save start balance for dashboard
+            self.start_balance = balance['total_balance']
+            self.dashboard.update_performance({
+                'start_balance': self.start_balance,
+                'current_balance': self.start_balance
+            })
 
             # Set leverage and margin type
             logger.info(f"\n⚙️ Setting up {self.symbol}...")
@@ -196,6 +208,27 @@ class LiveTradingBot:
             # Generate signal
             signal, metadata = self.strategy.generate_signal(current_data)
 
+            # Log signal to dashboard
+            signal_name = {1: 'BUY', 0: 'HOLD', -1: 'SELL'}.get(signal, 'HOLD')
+            self.dashboard.add_signal({
+                'signal': signal,
+                'signal_name': signal_name,
+                'price': current_price,
+                'confidence': metadata.get('confidence', 0),
+                'regime': metadata.get('regime', 'Unknown')
+            })
+
+            # Update bot status
+            self.dashboard.update_status({
+                'running': True,
+                'last_check': datetime.now().isoformat(),
+                'current_price': current_price,
+                'current_regime': metadata.get('regime', 'Unknown'),
+                'open_position': current_position,
+                'last_signal': signal_name,
+                'last_confidence': metadata.get('confidence', 0)
+            })
+
             # Execute based on signal
             if signal == 1 and not current_position:
                 # BUY signal and no position
@@ -253,6 +286,19 @@ class LiveTradingBot:
             logger.info(f"   Regime: {metadata.get('regime', 'Unknown')}")
             logger.info(f"   Confidence: {metadata.get('confidence', 0):.2%}")
 
+            # Log trade to dashboard (paper or real)
+            self.dashboard.add_trade({
+                'type': 'OPEN',
+                'side': 'LONG',
+                'entry_price': current_price,
+                'quantity': quantity,
+                'regime': metadata.get('regime', 'Unknown'),
+                'confidence': metadata.get('confidence', 0)
+            })
+
+            self.position_opened_at = datetime.now()
+            self.trades_count += 1
+
             if self.paper_trading:
                 logger.info("\n📝 PAPER TRADING - No actual order placed")
                 return
@@ -300,6 +346,33 @@ class LiveTradingBot:
             logger.info(f"Entry: {position['entry_price']:.2f}")
             logger.info(f"Current: {current_price:.2f}")
             logger.info(f"PnL: {position['unrealized_pnl']:.2f} USDT")
+
+            # Calculate PnL percentage
+            pnl = position['unrealized_pnl']
+            entry_price = position['entry_price']
+            pnl_pct = ((current_price - entry_price) / entry_price * 100) if entry_price > 0 else 0
+
+            # Log trade close to dashboard
+            self.dashboard.add_trade({
+                'type': 'CLOSE',
+                'side': position['side'],
+                'entry_price': entry_price,
+                'exit_price': current_price,
+                'quantity': position['quantity'],
+                'pnl': pnl,
+                'pnl_pct': pnl_pct,
+                'regime': 'Unknown',  # Could get from strategy
+                'confidence': 0  # Could get from strategy
+            })
+
+            # Update performance
+            self.dashboard.calculate_performance()
+
+            # Update current balance
+            balance = self.binance.get_account_balance()
+            self.dashboard.update_performance({
+                'current_balance': balance['total_balance']
+            })
 
             if self.paper_trading:
                 logger.info("\n📝 PAPER TRADING - No actual close")
