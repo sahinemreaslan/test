@@ -306,7 +306,7 @@ with tab2:
             yaxis_tickformat='.0%',
             hovermode='x unified',
             height=300
-        ))
+        )
 
         st.plotly_chart(fig2, use_container_width=True)
     else:
