@@ -97,7 +97,10 @@ class FeatureEngineer:
             logger.info(f"  Adding features from {tf}")
 
             # Forward fill higher timeframe data to match reference timeframe
-            aligned_df = df.reindex(ref_df.index, method='ffill')
+            # CRITICAL: Shift by 1 to prevent look-ahead bias!
+            # Higher timeframe candle close is only known AFTER the candle completes
+            # Example: Daily candle at 2024-01-15 23:59 is available from 2024-01-16 00:00
+            aligned_df = df.reindex(ref_df.index, method='ffill').shift(1)
 
             # Select important features to include
             important_features = self._get_important_features(aligned_df)
