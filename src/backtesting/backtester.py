@@ -27,7 +27,7 @@ class OrderSide(Enum):
 
 
 class Position:
-    """Trading position"""
+    """Trading position with advanced features"""
 
     def __init__(
         self,
@@ -38,13 +38,18 @@ class Position:
         stop_loss: Optional[float] = None,
         take_profit: Optional[float] = None,
         leverage: float = 1.0,
-        margin_used: float = 0.0
+        margin_used: float = 0.0,
+        enable_trailing_stop: bool = False,
+        trailing_stop_pct: float = 0.02,
+        enable_partial_exit: bool = False
     ):
         self.side = side
         self.entry_price = entry_price
         self.quantity = quantity
+        self.original_quantity = quantity  # Track original quantity for partial exits
         self.entry_time = entry_time
         self.stop_loss = stop_loss
+        self.initial_stop_loss = stop_loss  # Keep original SL for reference
         self.take_profit = take_profit
         self.leverage = leverage
         self.margin_used = margin_used
@@ -53,6 +58,17 @@ class Position:
         self.pnl: float = 0.0
         self.pnl_pct: float = 0.0
         self.liquidation_price: Optional[float] = None
+
+        # Trailing stop
+        self.enable_trailing_stop = enable_trailing_stop
+        self.trailing_stop_pct = trailing_stop_pct
+        self.highest_price = entry_price if side == OrderSide.BUY else entry_price  # Track high for long, low for short
+        self.lowest_price = entry_price
+
+        # Partial exit tracking
+        self.enable_partial_exit = enable_partial_exit
+        self.partial_exits: List[Dict] = []  # Track partial exit levels
+        self.is_partially_closed = False
 
         # Calculate liquidation price
         self._calculate_liquidation_price()
@@ -105,6 +121,37 @@ class Position:
         else:
             return current_price >= self.liquidation_price
 
+    def update_trailing_stop(self, current_high: float, current_low: float):
+        """
+        Update trailing stop based on price movement
+
+        Args:
+            current_high: Current candle high
+            current_low: Current candle low
+        """
+        if not self.enable_trailing_stop or self.stop_loss is None:
+            return
+
+        if self.side == OrderSide.BUY:
+            # For long positions, track highest price
+            if current_high > self.highest_price:
+                self.highest_price = current_high
+                # Update stop loss to trail below highest price
+                new_stop = self.highest_price * (1 - self.trailing_stop_pct)
+                # Only move stop loss up, never down
+                if new_stop > self.stop_loss:
+                    self.stop_loss = new_stop
+
+        else:  # SHORT position
+            # For short positions, track lowest price
+            if current_low < self.lowest_price:
+                self.lowest_price = current_low
+                # Update stop loss to trail above lowest price
+                new_stop = self.lowest_price * (1 + self.trailing_stop_pct)
+                # Only move stop loss down, never up
+                if new_stop < self.stop_loss:
+                    self.stop_loss = new_stop
+
     def calculate_pnl(self, exit_price: float) -> Tuple[float, float]:
         """
         Calculate PnL
@@ -121,11 +168,55 @@ class Position:
 
         return pnl, pnl_pct
 
+    def partial_close(self, exit_price: float, exit_time: pd.Timestamp, percentage: float) -> Tuple[float, float]:
+        """
+        Partially close position
+
+        Args:
+            exit_price: Exit price for this partial close
+            exit_time: Exit timestamp
+            percentage: Percentage of current quantity to close (0-1)
+
+        Returns:
+            Tuple of (quantity_closed, pnl_from_partial)
+        """
+        if percentage <= 0 or percentage > 1:
+            raise ValueError(f"Invalid percentage: {percentage}")
+
+        # Calculate quantity to close
+        quantity_to_close = self.quantity * percentage
+
+        # Calculate PnL for this partial exit
+        if self.side == OrderSide.BUY:
+            pnl = (exit_price - self.entry_price) * quantity_to_close
+        else:
+            pnl = (self.entry_price - exit_price) * quantity_to_close
+
+        # Update position quantity
+        self.quantity -= quantity_to_close
+
+        # Track this partial exit
+        self.partial_exits.append({
+            'exit_time': exit_time,
+            'exit_price': exit_price,
+            'quantity': quantity_to_close,
+            'pnl': pnl
+        })
+
+        self.is_partially_closed = True
+
+        return quantity_to_close, pnl
+
     def close(self, exit_price: float, exit_time: pd.Timestamp):
-        """Close position"""
+        """Close position (full or remaining quantity)"""
         self.exit_price = exit_price
         self.exit_time = exit_time
         self.pnl, self.pnl_pct = self.calculate_pnl(exit_price)
+
+        # Add partial exit PnLs if any
+        if self.partial_exits:
+            partial_pnl = sum(pe['pnl'] for pe in self.partial_exits)
+            self.pnl += partial_pnl
 
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -386,6 +477,17 @@ class Backtester:
             # Pass trend strength to modify exit behavior
             self._check_exit_conditions_with_trend(timestamp, row, current_trend_strength)
 
+            # Check for position scaling (pyramiding) if we have open positions
+            if len(self.positions) > 0 and candle_count % 50 == 0:  # Check less frequently
+                self._check_position_scaling(
+                    timestamp,
+                    row,
+                    current_trend_strength,
+                    stop_loss_atr_mult,
+                    take_profit_atr_mult,
+                    current_leverage
+                )
+
             # Calculate current equity
             equity = self._calculate_equity(current_price)
             self.equity_curve.append((timestamp, equity))
@@ -470,6 +572,76 @@ class Backtester:
         for position, exit_price, reason in positions_to_close:
             self._close_position(position, timestamp, exit_price, reason)
 
+    def _check_position_scaling(
+        self,
+        timestamp: pd.Timestamp,
+        row: pd.Series,
+        trend_strength: float = 0.0,
+        stop_loss_atr_mult: float = 2.0,
+        take_profit_atr_mult: float = 4.0,
+        current_leverage: float = 1.0
+    ) -> bool:
+        """
+        Check if we should add to existing position (pyramiding)
+
+        Only add when:
+        - Position is in profit
+        - Strong trend in position direction
+        - Haven't scaled too many times
+
+        Returns:
+            True if scaled, False otherwise
+        """
+        if not self.backtest_config.get('enable_position_scaling', False):
+            return False
+
+        if not self.positions or len(self.positions) == 0:
+            return False
+
+        position = self.positions[0]  # Assuming max_positions = 1
+
+        # Check if already scaled maximum times
+        max_scale_ins = self.backtest_config.get('max_scale_ins', 2)
+        if hasattr(position, 'scale_in_count') and position.scale_in_count >= max_scale_ins:
+            return False
+
+        # Only scale in strong trends matching position direction
+        if position.side == OrderSide.BUY and trend_strength < 0.5:
+            return False
+
+        # Check if position is in profit (at least 1 ATR)
+        current_price = row['close']
+        atr = row.get('atr', current_price * 0.02)
+        profit = (current_price - position.entry_price) if position.side == OrderSide.BUY else (position.entry_price - current_price)
+
+        if profit < atr:  # Not enough profit to scale
+            return False
+
+        # Add to position (smaller size than initial)
+        scale_size_multiplier = self.backtest_config.get('scale_size_multiplier', 0.5)
+        position_size_pct = 0.05 * scale_size_multiplier  # 50% of initial size
+
+        # Open additional position (will be merged conceptually)
+        self._open_position(
+            timestamp,
+            row,
+            side=position.side,
+            position_size_pct=position_size_pct,
+            stop_loss_atr_mult=stop_loss_atr_mult,
+            take_profit_atr_mult=take_profit_atr_mult,
+            leverage=current_leverage
+        )
+
+        # Track scaling
+        if not hasattr(position, 'scale_in_count'):
+            position.scale_in_count = 0
+        position.scale_in_count += 1
+
+        logger.info(f"POSITION SCALING #{position.scale_in_count} at {timestamp}: "
+                   f"{position.side.value}, price={current_price:.2f}, trend={trend_strength:.2f}")
+
+        return True
+
     def _check_exit_conditions_with_trend(
         self,
         timestamp: pd.Timestamp,
@@ -477,11 +649,11 @@ class Backtester:
         trend_strength: float = 0.0
     ):
         """
-        Check exit conditions with trend filter
+        Check exit conditions with trend filter, trailing stop, and partial exits
 
         In strong uptrends, hold positions longer by:
         - Ignoring early take profit signals
-        - Giving more room before stop loss
+        - Using trailing stop to lock in profits
 
         Args:
             timestamp: Current timestamp
@@ -489,11 +661,15 @@ class Backtester:
             trend_strength: Current trend strength (-1 to 1)
         """
         positions_to_close = []
+        positions_to_partial_close = []
 
         for position in self.positions:
             current_high = row['high']
             current_low = row['low']
             current_close = row['close']
+
+            # Update trailing stop
+            position.update_trailing_stop(current_high, current_low)
 
             # Check liquidation FIRST (always highest priority)
             if position.is_liquidated(current_low if position.side == OrderSide.BUY else current_high):
@@ -502,14 +678,28 @@ class Backtester:
                 self.liquidations += 1
                 continue
 
+            # Partial exit logic (if enabled and in profit)
+            if position.enable_partial_exit and not position.is_partially_closed:
+                current_pnl_pct = (current_close - position.entry_price) / position.entry_price if position.side == OrderSide.BUY else (position.entry_price - current_close) / position.entry_price
+
+                # Take partial profit at 50% of TP distance
+                if position.take_profit is not None:
+                    tp_distance = abs(position.take_profit - position.entry_price)
+                    partial_target = position.entry_price + (tp_distance * 0.5) if position.side == OrderSide.BUY else position.entry_price - (tp_distance * 0.5)
+
+                    if (position.side == OrderSide.BUY and current_high >= partial_target) or \
+                       (position.side == OrderSide.SELL and current_low <= partial_target):
+                        # Close 50% of position
+                        positions_to_partial_close.append((position, partial_target, 0.5))
+
             # For LONG positions in strong UPTREND: hold longer
             if position.side == OrderSide.BUY and trend_strength > 0.3:
                 # Only exit on stop loss in strong uptrends (let profits run)
                 if position.is_stop_loss_hit(current_low):
                     exit_price = position.stop_loss * (1 - self.slippage)
-                    positions_to_close.append((position, exit_price, 'stop_loss'))
+                    positions_to_close.append((position, exit_price, 'trailing_stop' if position.enable_trailing_stop else 'stop_loss'))
 
-                # Ignore take profit in strong trends - let it run!
+                # Ignore normal take profit in strong trends - let it run!
                 # Take profit only if extreme profit (2x the normal TP)
                 elif position.take_profit is not None:
                     extreme_tp = position.entry_price + (position.take_profit - position.entry_price) * 2
@@ -522,7 +712,7 @@ class Backtester:
                 # Exit on stop loss or take profit (normal behavior)
                 if position.is_stop_loss_hit(current_low):
                     exit_price = position.stop_loss * (1 - self.slippage)
-                    positions_to_close.append((position, exit_price, 'stop_loss'))
+                    positions_to_close.append((position, exit_price, 'trailing_stop' if position.enable_trailing_stop else 'stop_loss'))
                 elif position.is_take_profit_hit(current_high):
                     # Take any profit in downtrends
                     exit_price = position.take_profit * (1 - self.slippage)
@@ -532,12 +722,16 @@ class Backtester:
             else:
                 if position.is_stop_loss_hit(current_low if position.side == OrderSide.BUY else current_high):
                     exit_price = position.stop_loss * (1 - self.slippage)
-                    positions_to_close.append((position, exit_price, 'stop_loss'))
+                    positions_to_close.append((position, exit_price, 'trailing_stop' if position.enable_trailing_stop else 'stop_loss'))
                 elif position.is_take_profit_hit(current_high if position.side == OrderSide.BUY else current_low):
                     exit_price = position.take_profit * (1 - self.slippage)
                     positions_to_close.append((position, exit_price, 'take_profit'))
 
-        # Close positions
+        # Execute partial closes first
+        for position, exit_price, percentage in positions_to_partial_close:
+            self._partial_close_position(position, timestamp, exit_price, percentage)
+
+        # Then execute full closes
         for position, exit_price, reason in positions_to_close:
             self._close_position(position, timestamp, exit_price, reason)
 
@@ -577,7 +771,12 @@ class Backtester:
             stop_loss = entry_price + (atr * stop_loss_atr_mult)
             take_profit = entry_price - (atr * take_profit_atr_mult)
 
-        # Create position with leverage info
+        # Get advanced features settings from config
+        enable_trailing_stop = self.backtest_config.get('enable_trailing_stop', True)
+        trailing_stop_pct = self.backtest_config.get('trailing_stop_pct', 0.02)  # 2% default
+        enable_partial_exit = self.backtest_config.get('enable_partial_exit', True)
+
+        # Create position with leverage info and advanced features
         position = Position(
             side=side,
             entry_price=entry_price,
@@ -586,7 +785,10 @@ class Backtester:
             stop_loss=stop_loss,
             take_profit=take_profit,
             leverage=leverage,
-            margin_used=margin
+            margin_used=margin,
+            enable_trailing_stop=enable_trailing_stop,
+            trailing_stop_pct=trailing_stop_pct,
+            enable_partial_exit=enable_partial_exit
         )
 
         self.positions.append(position)
@@ -594,12 +796,44 @@ class Backtester:
         # Deduct margin + commission from capital
         self.current_capital -= (margin + commission_cost)
 
+    def _partial_close_position(
+        self,
+        position: Position,
+        timestamp: pd.Timestamp,
+        exit_price: float,
+        percentage: float
+    ):
+        """
+        Partially close a position
+
+        Args:
+            position: Position to partially close
+            timestamp: Current timestamp
+            exit_price: Exit price
+            percentage: Percentage to close (0-1)
+        """
+        # Execute partial close
+        quantity_closed, pnl = position.partial_close(exit_price, timestamp, percentage)
+
+        # Commission on partial exit
+        commission_cost = quantity_closed * exit_price * self.commission
+
+        # Return proportional margin + PnL - commission
+        margin_returned = position.margin_used * percentage
+        self.current_capital += margin_returned + pnl - commission_cost
+
+        # Update position's margin used
+        position.margin_used *= (1 - percentage)
+
+        logger.debug(f"PARTIAL EXIT ({percentage*100:.0f}%) at {timestamp}: "
+                    f"{position.side.value} position, price={exit_price:.2f}, PnL={pnl:.2f}")
+
     def _close_position(self, position: Position, timestamp: pd.Timestamp, exit_price: float, reason: str = 'signal'):
         """Close position and return margin"""
         # Calculate PnL
         position.close(exit_price, timestamp)
 
-        # Commission on exit
+        # Commission on exit (on remaining quantity)
         commission_cost = position.quantity * exit_price * self.commission
 
         # For liquidation, lose all margin
@@ -610,7 +844,7 @@ class Backtester:
             # Capital already reduced by margin, don't add anything back
             pass
         else:
-            # Normal exit: return margin + PnL - commission
+            # Normal exit: return remaining margin + PnL - commission
             self.current_capital += position.margin_used + position.pnl - commission_cost
 
         # Move to closed trades
