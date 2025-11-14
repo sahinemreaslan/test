@@ -167,7 +167,11 @@ class StrategyExecutor:
 
             # Get ensemble probability (confidence)
             ensemble_proba = self.advanced_system.ensemble_model.predict_proba(features)
-            confidence = float(ensemble_proba.iloc[-1])
+            # Handle both DataFrame/Series and numpy array
+            if hasattr(ensemble_proba, 'iloc'):
+                confidence = float(ensemble_proba.iloc[-1])
+            else:
+                confidence = float(ensemble_proba[-1])
 
             metadata = {
                 'signal': signal,
