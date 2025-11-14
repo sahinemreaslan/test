@@ -1,0 +1,159 @@
+# Live Trading Configuration
+# Optimized for SMART-AGGRESSIVE growth (5,000 TL starting capital)
+# Goal: 40-70% monthly returns with controlled risk
+
+# Trading settings
+trading:
+  symbol: "BTCUSDT"
+
+  # LEVERAGE: 5x for aggressive growth (recommended for experienced traders)
+  # WARNING: Higher leverage = Higher risk! Start with 3x if unsure.
+  leverage: 5
+
+  # Position sizing
+  position_size_pct: 0.08        # Use 8% of balance per trade (aggressive)
+  max_position_pct: 0.25         # Maximum 25% in single position
+
+  # How often to check for signals (in seconds)
+  # 60 = check every 1 minute (15m candles)
+  check_interval_seconds: 60
+
+  # Stop loss and take profit (ATR multipliers)
+  stop_loss_atr_mult: 2.0        # 2x ATR for stop loss
+  take_profit_atr_mult: 4.0      # 4x ATR for take profit
+
+  # TESTNET MODE
+  # Set to true for practice with fake money (HIGHLY RECOMMENDED FIRST!)
+  # Set to false for REAL MONEY trading
+  testnet: true
+
+  # PAPER TRADING MODE
+  # Set to true to simulate trades without actually placing orders
+  # Set to false to place real orders
+  paper_trading: true
+
+# Advanced position management features
+advanced_features:
+  # Trailing Stop Loss (locks in profits)
+  enable_trailing_stop: true
+  trailing_stop_pct: 0.02        # Trail 2% below highest price
+
+  # Partial Exits (take profit at intermediate targets)
+  enable_partial_exit: true
+  partial_exit_percentage: 0.4   # Close 40% at first target (keep 60% for bigger moves)
+
+  # Position Scaling (add to winners)
+  enable_position_scaling: true
+  max_scale_ins: 2               # Maximum 2 additions to winning positions
+  scale_size_multiplier: 0.5     # Each add is 50% of previous
+
+  # Crash Protection
+  extreme_volatility_threshold: 0.05   # Stop scaling if volatility > 5%
+  max_drawdown_for_scaling: 0.10       # Stop scaling if drawdown > 10%
+
+# Risk management
+risk_management:
+  max_daily_loss_pct: 0.05       # Stop trading if lose 5% in a day
+  max_weekly_loss_pct: 0.15      # Stop if lose 15% in a week
+  max_concurrent_positions: 1    # Only 1 position at a time
+
+  # Circuit breaker (emergency stop)
+  enable_circuit_breaker: true
+  circuit_breaker_loss_pct: 0.20 # Stop bot if lose 20% of capital
+
+# Data settings (same as backtesting)
+data:
+  base_timeframe: "15m"
+
+# Timeframes to analyze
+timeframes:
+  all:
+    - "3M"
+    - "1M"
+    - "1W"
+    - "1D"
+    - "12h"
+    - "8h"
+    - "4h"
+    - "2h"
+    - "1h"
+    - "30m"
+    - "15m"
+  trading: "15m"
+  signal: "15m"
+
+# Indicator settings (same as backtesting)
+indicators:
+  rsi:
+    periods: [14, 21, 28]
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  bollinger:
+    period: 20
+    std_dev: 2
+  stochastic:
+    k_period: 14
+    d_period: 3
+    smooth_k: 3
+  atr:
+    period: 14
+  ema:
+    periods: [9, 21, 50, 100, 200]
+  volume:
+    ma_period: 20
+
+# XGBoost model settings
+xgboost:
+  model_params:
+    max_depth: 6
+    learning_rate: 0.1
+    n_estimators: 100
+    objective: "binary:logistic"
+    eval_metric: "auc"
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+
+# Backtesting settings (for initial training)
+backtesting:
+  initial_capital: 10000
+  commission: 0.001
+  slippage: 0.0005
+  leverage: 5
+  maintenance_margin: 0.05
+  initial_margin_ratio: 0.10
+
+  # Same advanced features as live
+  enable_trailing_stop: true
+  trailing_stop_pct: 0.02
+  enable_partial_exit: true
+  partial_exit_percentage: 0.4
+  enable_position_scaling: true
+  max_scale_ins: 2
+  scale_size_multiplier: 0.5
+  extreme_volatility_threshold: 0.05
+  max_drawdown_for_scaling: 0.10
+
+  max_positions: 1
+  max_drawdown_percent: 20
+
+# Logging settings
+logging:
+  level: "INFO"           # Options: DEBUG, INFO, WARNING, ERROR
+  save_to_file: true
+  log_file: "logs/live_trading.log"
+
+# Notifications (optional)
+notifications:
+  enable_telegram: false  # Set to true to enable Telegram alerts
+  notify_on_trade: true
+  notify_on_error: true
+  notify_daily_summary: true
+
+# Output
+output:
+  results_dir: "live_results"
+  save_trades: true
+  save_performance: true
