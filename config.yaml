@@ -123,8 +123,18 @@ xgboost:
 
 backtesting:
   initial_capital: 10000
-  commission: 0.001  # 0.1%
-  slippage: 0.0005   # 0.05%
+
+  # Trading costs (realistic for crypto exchanges)
+  commission: 0.001  # 0.1% (maker/taker average for Binance)
+  slippage: 0.0005   # 0.05% (market impact)
+
+  # Leverage settings
+  leverage: 1        # 1x = no leverage, 2x, 3x, 5x, 10x etc.
+  max_leverage: 10   # Maximum allowed leverage
+
+  # Margin requirements
+  maintenance_margin: 0.05  # 5% (for liquidation)
+  initial_margin_ratio: 0.10  # 10% (minimum required)
 
   # Risk management
   max_positions: 1
