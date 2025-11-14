@@ -1,0 +1,24 @@
+# Binance Live Trading Requirements
+
+# Binance API
+python-binance==1.0.19
+
+# Data processing
+pandas==2.1.3
+numpy==1.24.3
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Logging
+colorlog==6.8.0
+
+# Async support
+aiohttp==3.9.1
+websockets==12.0
+
+# Notifications (optional)
+python-telegram-bot==20.7  # Telegram bildirimleri için
+
+# System monitoring
+psutil==5.9.6
