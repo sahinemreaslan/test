@@ -34,19 +34,29 @@ from src.strategy.fractal_strategy import FractalMultiTimeframeStrategy
 
 logger = logging.getLogger(__name__)
 
+# Try to import advanced system (optional dependency)
+try:
+    from src.advanced.integrated_system import AdvancedTradingSystem
+    ADVANCED_AVAILABLE = True
+except ImportError as e:
+    ADVANCED_AVAILABLE = False
+    logger.debug(f"Advanced system not available: {e}")
+
 
 class TradingSystemOrchestrator:
     """Main orchestrator for the trading system"""
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, use_advanced: bool = False):
         """
         Initialize orchestrator
 
         Args:
             config_path: Path to configuration file
+            use_advanced: Whether to use advanced trading system (Level 3)
         """
         self.config = ConfigLoader.load(config_path)
         create_output_dirs(self.config)
+        self.use_advanced = use_advanced
 
         # Initialize components
         self.data_loader = None
@@ -54,6 +64,7 @@ class TradingSystemOrchestrator:
         self.feature_engineer = None
         self.ml_model = None
         self.ga_optimizer = None
+        self.advanced_system = None
 
         # Data storage
         self.base_data = None
@@ -70,8 +81,20 @@ class TradingSystemOrchestrator:
             optimize_ga: Whether to run genetic algorithm optimization
         """
         logger.info("="*70)
-        logger.info("FRACTAL MULTI-TIMEFRAME TRADING SYSTEM")
+        if self.use_advanced:
+            logger.info("FRACTAL MULTI-TIMEFRAME TRADING SYSTEM - LEVEL 3 (ADVANCED)")
+        else:
+            logger.info("FRACTAL MULTI-TIMEFRAME TRADING SYSTEM")
         logger.info("="*70)
+
+        # If using advanced system, run advanced pipeline
+        if self.use_advanced:
+            if not ADVANCED_AVAILABLE:
+                logger.error("Advanced system requested but dependencies not installed!")
+                logger.error("Please install: pip install hmmlearn lightgbm catboost torch stable-baselines3 gymnasium")
+                return
+            self.run_advanced_pipeline(train_ml, optimize_ga)
+            return
 
         # Step 1: Load data
         logger.info("\n[1/8] Loading data...")
@@ -337,6 +360,109 @@ class TradingSystemOrchestrator:
 
         logger.info("\n" + "="*70)
 
+    def run_advanced_pipeline(self, train_ml: bool = True, optimize_ga: bool = True):
+        """
+        Run the advanced trading system pipeline (Level 3)
+
+        Args:
+            train_ml: Whether to train models
+            optimize_ga: Whether to run GA optimization (not used in advanced mode)
+        """
+        # Steps 1-4: Same as basic pipeline
+        logger.info("\n[1/6] Loading data...")
+        self.load_data()
+
+        logger.info("\n[2/6] Converting to multiple timeframes...")
+        self.convert_timeframes()
+
+        logger.info("\n[3/6] Calculating indicators and fractal patterns...")
+        self.process_timeframes()
+
+        logger.info("\n[4/6] Engineering features...")
+        self.engineer_features()
+
+        # Step 5: Train advanced system
+        if train_ml:
+            logger.info("\n[5/6] Training Advanced System (Level 3)...")
+            logger.info("  - Market Regime Detection (HMM)")
+            logger.info("  - Ensemble Models (XGBoost + LightGBM + CatBoost)")
+            logger.info("  - Deep Learning Models (LSTM + Transformers)")
+            logger.info("  - Reinforcement Learning (PPO)")
+            logger.info("  - Advanced Risk Management (Kelly, CVaR, etc.)")
+
+            self.advanced_system = AdvancedTradingSystem(
+                self.config,
+                use_deep_learning=True,
+                use_rl=True
+            )
+
+            # Get reference timeframe data for regime detection
+            signal_tf = self.config.get('timeframes', {}).get('signal', '15m')
+
+            # Train the system
+            metrics = self.advanced_system.train(
+                self.timeframe_data[signal_tf],
+                self.features,
+                self.target
+            )
+
+            logger.info("\nAdvanced System Training Metrics:")
+            logger.info(f"  Ensemble Accuracy: {metrics.get('ensemble_accuracy', 0):.2%}")
+            logger.info(f"  Ensemble AUC: {metrics.get('ensemble_auc', 0):.4f}")
+            if 'dl_metrics' in metrics:
+                logger.info(f"  Deep Learning Accuracy: {metrics['dl_metrics'].get('lstm_accuracy', 0):.2%}")
+            if 'rl_metrics' in metrics:
+                logger.info(f"  RL Training Complete: {metrics['rl_metrics'].get('trained', False)}")
+        else:
+            logger.info("\n[5/6] Skipping Advanced System training")
+
+        # Step 6: Run backtest with advanced system
+        logger.info("\n[6/6] Running backtest with Advanced System...")
+        if self.advanced_system:
+            signal_tf = self.config.get('timeframes', {}).get('signal', '15m')
+
+            # Generate signals
+            signals = self.advanced_system.generate_signals(
+                self.timeframe_data[signal_tf],
+                self.features
+            )
+
+            # Get default parameters for backtester
+            params = self.get_default_params()
+
+            # Run backtest
+            backtester = Backtester(self.config)
+            equity_curve, trades = backtester.run(
+                self.timeframe_data[signal_tf],
+                signals,
+                params,
+                verbose=True
+            )
+
+            # Print results
+            backtester.print_results()
+
+            # Save results
+            results_dir = self.config.get('output', {}).get('results_dir', 'results')
+            equity_curve.to_csv(os.path.join(results_dir, 'advanced_equity_curve.csv'))
+
+            # Print system summary
+            logger.info("\n" + "="*70)
+            logger.info("ADVANCED SYSTEM SUMMARY")
+            logger.info("="*70)
+            summary = self.advanced_system.get_system_summary()
+            logger.info(f"\nCurrent Market Regime: {summary['current_regime']}")
+            logger.info(f"Regime Confidence: {summary['regime_confidence']:.2%}")
+            logger.info(f"\nActive Components:")
+            for component, status in summary['components'].items():
+                logger.info(f"  {component}: {'✓' if status else '✗'}")
+
+            logger.info(f"\nResults saved to {results_dir}")
+
+        logger.info("\n" + "="*70)
+        logger.info("ADVANCED PIPELINE COMPLETE!")
+        logger.info("="*70)
+
 
 def main():
     """Main entry point"""
@@ -347,6 +473,8 @@ def main():
                        help='Skip ML model training')
     parser.add_argument('--no-ga', action='store_true',
                        help='Skip genetic algorithm optimization')
+    parser.add_argument('--use-advanced', action='store_true',
+                       help='Use Advanced Trading System (Level 3) with ensemble models, deep learning, and RL')
     parser.add_argument('--verbose', action='store_true', default=True,
                        help='Enable verbose logging')
 
@@ -356,7 +484,7 @@ def main():
     setup_logging(verbose=args.verbose)
 
     # Run pipeline
-    orchestrator = TradingSystemOrchestrator(args.config)
+    orchestrator = TradingSystemOrchestrator(args.config, use_advanced=args.use_advanced)
     orchestrator.run_full_pipeline(
         train_ml=not args.no_ml,
         optimize_ga=not args.no_ga
