@@ -93,9 +93,10 @@ class StrategyExecutor:
             logger.info(f"Features created: {features.shape}")
             logger.info(f"Target distribution: {target.value_counts().to_dict()}")
 
-            # Train advanced system
+            # Train advanced system (pass original OHLCV data for regime detection)
             logger.info("Training advanced system...")
-            self.advanced_system.train(df, features, target, verbose=True)
+            reference_ohlcv = all_timeframes[reference_tf]  # Original OHLCV with indicators
+            self.advanced_system.train(reference_ohlcv, features, target, verbose=True)
 
             self.trained = True
             logger.info("✅ Strategy training complete!")
