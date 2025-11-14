@@ -390,11 +390,13 @@ class TradingSystemOrchestrator:
             logger.info("  - Reinforcement Learning (PPO)")
             logger.info("  - Advanced Risk Management (Kelly, CVaR, etc.)")
 
-            self.advanced_system = AdvancedTradingSystem(
-                self.config,
-                use_deep_learning=True,
-                use_rl=True
-            )
+            # Set advanced options in config
+            if 'advanced' not in self.config:
+                self.config['advanced'] = {}
+            self.config['advanced']['use_deep_learning'] = True
+            self.config['advanced']['use_rl'] = True
+
+            self.advanced_system = AdvancedTradingSystem(self.config)
 
             # Get reference timeframe data for regime detection
             signal_tf = self.config.get('timeframes', {}).get('signal', '15m')
