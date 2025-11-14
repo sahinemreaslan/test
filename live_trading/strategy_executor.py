@@ -34,7 +34,6 @@ class StrategyExecutor:
         """
         self.config = config
         self.feature_eng = FeatureEngineer(config)
-        self.tf_converter = TimeframeConverter()
 
         # Advanced trading system
         self.advanced_system = AdvancedTradingSystem(config)
@@ -54,12 +53,22 @@ class StrategyExecutor:
         logger.info("🎓 Training strategy on historical data...")
 
         try:
+            # Prepare data - ensure datetime index
+            if not isinstance(historical_data.index, pd.DatetimeIndex):
+                if 'timestamp' in historical_data.columns:
+                    historical_data = historical_data.set_index('timestamp')
+                elif 'date' in historical_data.columns:
+                    historical_data = historical_data.set_index('date')
+
             # Convert to multiple timeframes
             logger.info("Converting to multiple timeframes...")
-            all_timeframes = self.tf_converter.convert_all_timeframes(
-                historical_data,
-                base_timeframe='15min'
-            )
+            tf_converter = TimeframeConverter(historical_data)
+
+            # Get timeframes from config
+            timeframes = self.config.get('timeframes', {}).get('all', [
+                '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
+            ])
+            all_timeframes = tf_converter.convert_all_timeframes(timeframes)
 
             # Create features
             logger.info("Creating features...")
@@ -96,11 +105,21 @@ class StrategyExecutor:
             return 0, {}
 
         try:
+            # Prepare data - ensure datetime index
+            if not isinstance(current_data.index, pd.DatetimeIndex):
+                if 'timestamp' in current_data.columns:
+                    current_data = current_data.set_index('timestamp')
+                elif 'date' in current_data.columns:
+                    current_data = current_data.set_index('date')
+
             # Convert to multiple timeframes
-            all_timeframes = self.tf_converter.convert_all_timeframes(
-                current_data,
-                base_timeframe='15min'
-            )
+            tf_converter = TimeframeConverter(current_data)
+
+            # Get timeframes from config
+            timeframes = self.config.get('timeframes', {}).get('all', [
+                '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
+            ])
+            all_timeframes = tf_converter.convert_all_timeframes(timeframes)
 
             # Create features
             features, target, df = self.feature_eng.create_features(all_timeframes)
