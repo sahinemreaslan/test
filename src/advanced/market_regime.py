@@ -263,29 +263,33 @@ class MarketRegimeDetector:
 
         if "Bull" in regime_name:
             return {
-                'position_size_multiplier': 1.2,  # More aggressive
-                'stop_loss_multiplier': 0.9,      # Tighter stops
-                'take_profit_multiplier': 1.2,    # Higher targets
-                'signal_threshold': 0.5           # Lower threshold
+                'position_size_multiplier': 1.5,  # More aggressive (increased from 1.2)
+                'stop_loss_multiplier': 0.8,      # Tighter stops (from 0.9)
+                'take_profit_multiplier': 1.5,    # Higher targets (from 1.2)
+                'signal_threshold': 0.45,         # Lower threshold (from 0.5)
+                'leverage_multiplier': 1.2        # Can use more leverage in bull
             }
         elif "Bear" in regime_name:
             return {
-                'position_size_multiplier': 0.5,  # Conservative
-                'stop_loss_multiplier': 1.2,      # Wider stops
-                'take_profit_multiplier': 0.8,    # Lower targets
-                'signal_threshold': 0.7           # Higher threshold
+                'position_size_multiplier': 0.4,  # Very conservative (from 0.5)
+                'stop_loss_multiplier': 1.3,      # Wider stops (from 1.2)
+                'take_profit_multiplier': 0.7,    # Lower targets (from 0.8)
+                'signal_threshold': 0.75,         # Higher threshold (from 0.7)
+                'leverage_multiplier': 0.5        # Reduce leverage in bear
             }
         elif "High Volatility" in regime_name:
             return {
-                'position_size_multiplier': 0.3,  # Very small
-                'stop_loss_multiplier': 1.5,      # Very wide stops
+                'position_size_multiplier': 0.25, # Very small (from 0.3)
+                'stop_loss_multiplier': 1.6,      # Very wide stops (from 1.5)
                 'take_profit_multiplier': 1.5,    # Quick exits
-                'signal_threshold': 0.8           # Very selective
+                'signal_threshold': 0.8,          # Very selective
+                'leverage_multiplier': 0.3        # Minimal leverage in high vol
             }
         else:  # Sideways
             return {
-                'position_size_multiplier': 0.7,  # Moderate
+                'position_size_multiplier': 0.8,  # Moderate (from 0.7)
                 'stop_loss_multiplier': 1.0,      # Normal stops
-                'take_profit_multiplier': 1.0,    # Normal targets
-                'signal_threshold': 0.6           # Moderate threshold
+                'take_profit_multiplier': 1.1,    # Slightly higher targets
+                'signal_threshold': 0.6,          # Moderate threshold
+                'leverage_multiplier': 0.9        # Slightly reduced leverage
             }

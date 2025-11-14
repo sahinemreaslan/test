@@ -220,13 +220,44 @@ class AdvancedTradingSystem:
         regime_name = self.regime_detector.get_regime_name(self.current_regime)
 
         # Calculate dynamic position size
-        position_size = self.position_sizer.calculate_position_size(
+        base_position_size = self.position_sizer.calculate_position_size(
             trades=trades,
             current_volatility=current_volatility,
             market_regime=regime_name
         )
 
+        # Apply regime-specific position size multiplier
+        regime_params = self.regime_detector.get_regime_strategy_params(self.current_regime)
+        position_size = base_position_size * regime_params['position_size_multiplier']
+
+        # Cap at reasonable maximum
+        position_size = min(position_size, 0.25)  # Max 25% of capital
+
         return position_size
+
+    def get_regime_parameters(self) -> Dict[str, float]:
+        """
+        Get current regime-based strategy parameters
+
+        Returns:
+            Dictionary with regime-specific multipliers:
+            - position_size_multiplier
+            - stop_loss_multiplier
+            - take_profit_multiplier
+            - signal_threshold
+            - leverage_multiplier
+        """
+        if self.current_regime is None:
+            # Default parameters if no regime detected yet
+            return {
+                'position_size_multiplier': 1.0,
+                'stop_loss_multiplier': 1.0,
+                'take_profit_multiplier': 1.0,
+                'signal_threshold': 0.6,
+                'leverage_multiplier': 1.0
+            }
+
+        return self.regime_detector.get_regime_strategy_params(self.current_regime)
 
     def get_advanced_metrics(
         self,

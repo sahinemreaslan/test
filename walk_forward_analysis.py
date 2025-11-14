@@ -306,8 +306,8 @@ class WalkForwardAnalyzer:
         # Default params
         params = self._get_default_params()
 
-        # Run backtest
-        backtester = Backtester(self.config)
+        # Run backtest with advanced system for regime-based adjustments
+        backtester = Backtester(self.config, advanced_system=system)
         equity_curve, trades = backtester.run(df, signals, params, verbose=False)
 
         # Get metrics

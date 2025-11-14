@@ -147,15 +147,17 @@ class Position:
 class Backtester:
     """Backtest trading strategy"""
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, advanced_system=None):
         """
         Initialize backtester
 
         Args:
             config: Configuration dictionary
+            advanced_system: Optional AdvancedTradingSystem for regime-based adjustments
         """
         self.config = config
         self.backtest_config = config.get('backtesting', {})
+        self.advanced_system = advanced_system
 
         # Capital and position sizing
         self.initial_capital = self.backtest_config.get('initial_capital', 10000)
@@ -167,7 +169,7 @@ class Backtester:
         self.slippage = self.backtest_config.get('slippage', 0.0005)    # 0.05%
 
         # Leverage settings
-        self.leverage = self.backtest_config.get('leverage', 1)  # Default 1x (no leverage)
+        self.base_leverage = self.backtest_config.get('leverage', 1)  # Default 1x (no leverage)
         self.max_leverage = self.backtest_config.get('max_leverage', 10)
         self.maintenance_margin = self.backtest_config.get('maintenance_margin', 0.05)
         self.initial_margin_ratio = self.backtest_config.get('initial_margin_ratio', 0.10)
@@ -194,6 +196,116 @@ class Backtester:
         self.equity_curve = []
         self.liquidations = 0
 
+    def _get_volatility_multiplier(self, volatility: float) -> float:
+        """
+        Get leverage multiplier based on volatility
+
+        Higher volatility = lower leverage for safety
+        Lower volatility = can use higher leverage
+
+        Args:
+            volatility: Current volatility (daily std dev)
+
+        Returns:
+            Volatility multiplier for leverage (0.5 to 1.2)
+        """
+        if volatility < 0.01:  # Very low volatility
+            return 1.2
+        elif volatility < 0.02:  # Normal volatility
+            return 1.0
+        elif volatility < 0.03:  # Elevated volatility
+            return 0.8
+        elif volatility < 0.05:  # High volatility
+            return 0.6
+        else:  # Extreme volatility
+            return 0.5
+
+    def _calculate_trend_strength(self, data: pd.DataFrame, index: int, lookback: int = 50) -> float:
+        """
+        Calculate trend strength at given index
+
+        Uses EMA slope and price position relative to EMA
+
+        Args:
+            data: DataFrame with OHLCV data
+            index: Current index position
+            lookback: Lookback period for EMA
+
+        Returns:
+            Trend strength: -1 to 1 (negative = downtrend, positive = uptrend)
+        """
+        if index < lookback + 10:
+            return 0.0
+
+        # Get price data
+        prices = data['close'].iloc[max(0, index - lookback):index + 1]
+
+        if len(prices) < 20:
+            return 0.0
+
+        # Calculate EMA
+        ema_fast = prices.ewm(span=20).mean()
+        ema_slow = prices.ewm(span=50).mean()
+
+        if len(ema_fast) < 2 or len(ema_slow) < 2:
+            return 0.0
+
+        # Current values
+        current_price = prices.iloc[-1]
+        current_ema_fast = ema_fast.iloc[-1]
+        current_ema_slow = ema_slow.iloc[-1]
+
+        # EMA alignment
+        ema_alignment = (current_ema_fast - current_ema_slow) / current_ema_slow
+
+        # Price position relative to EMAs
+        price_position = (current_price - current_ema_fast) / current_ema_fast
+
+        # EMA slope (rate of change)
+        ema_slope = (ema_fast.iloc[-1] - ema_fast.iloc[-10]) / ema_fast.iloc[-10]
+
+        # Combine factors
+        trend_strength = (ema_alignment * 2 + price_position + ema_slope) / 4
+
+        # Normalize to -1 to 1
+        trend_strength = np.clip(trend_strength, -1.0, 1.0)
+
+        return float(trend_strength)
+
+    def _get_regime_adjusted_params(self, base_params: Dict, current_volatility: float = 0.02) -> Dict:
+        """
+        Get regime-adjusted parameters
+
+        Args:
+            base_params: Base strategy parameters
+            current_volatility: Current market volatility
+
+        Returns:
+            Adjusted parameters based on current market regime and volatility
+        """
+        if self.advanced_system is None or not hasattr(self.advanced_system, 'get_regime_parameters'):
+            return base_params
+
+        # Get regime parameters
+        regime_params = self.advanced_system.get_regime_parameters()
+
+        # Apply multipliers
+        adjusted_params = base_params.copy()
+        adjusted_params['stop_loss_atr'] = base_params.get('stop_loss_atr', 2.0) * regime_params['stop_loss_multiplier']
+        adjusted_params['take_profit_atr'] = base_params.get('take_profit_atr', 4.0) * regime_params['take_profit_multiplier']
+
+        # Calculate leverage: base * regime_multiplier * volatility_multiplier
+        regime_leverage = self.base_leverage * regime_params['leverage_multiplier']
+        vol_multiplier = self._get_volatility_multiplier(current_volatility)
+        adjusted_params['leverage'] = regime_leverage * vol_multiplier
+
+        # Cap leverage at max
+        adjusted_params['leverage'] = min(adjusted_params['leverage'], self.max_leverage)
+        # Floor at 1x (no less than no leverage)
+        adjusted_params['leverage'] = max(adjusted_params['leverage'], 1.0)
+
+        return adjusted_params
+
     def run(
         self,
         data: pd.DataFrame,
@@ -216,14 +328,27 @@ class Backtester:
         logger.info("Running backtest...")
         self.reset()
 
+        # Make a copy to avoid SettingWithCopyWarning
+        data = data.copy()
+
         # Get ATR for stop loss/take profit calculation
         if 'atr' not in data.columns:
             logger.warning("ATR not found in data, using default values")
             data['atr'] = data['close'] * 0.02  # 2% of close as fallback
 
+        # Calculate rolling volatility (20-period)
+        data['volatility'] = data['close'].pct_change().rolling(20).std()
+
+        # Get initial volatility for regime adjustment
+        initial_volatility = data['volatility'].iloc[20] if len(data) > 20 else 0.02
+
+        # Get regime-adjusted parameters
+        adjusted_params = self._get_regime_adjusted_params(params, current_volatility=initial_volatility)
+
         position_size_pct = params.get('position_size', 0.05)  # Default 5%
-        stop_loss_atr_mult = params.get('stop_loss_atr', 2.0)
-        take_profit_atr_mult = params.get('take_profit_atr', 4.0)
+        stop_loss_atr_mult = adjusted_params.get('stop_loss_atr', 2.0)
+        take_profit_atr_mult = adjusted_params.get('take_profit_atr', 4.0)
+        current_leverage = adjusted_params.get('leverage', self.base_leverage)
 
         # Align signals with data
         signals = signals.reindex(data.index, fill_value=0)
@@ -231,7 +356,12 @@ class Backtester:
         # Track peak equity for drawdown calculation
         peak_equity = self.initial_capital
 
-        for timestamp, row in data.iterrows():
+        # Track when to recalculate regime params (every N candles)
+        recalc_interval = 100  # Recalculate every 100 candles
+        candle_count = 0
+        current_trend_strength = 0.0
+
+        for i, (timestamp, row) in enumerate(data.iterrows()):
             if pd.isna(timestamp):
                 continue
 
@@ -239,8 +369,22 @@ class Backtester:
             current_atr = row.get('atr', current_price * 0.02)
             signal = signals.loc[timestamp] if timestamp in signals.index else 0
 
+            # Periodically recalculate regime-adjusted params and trend strength
+            candle_count += 1
+            if candle_count % recalc_interval == 0:
+                current_vol = row.get('volatility', 0.02)
+                if not pd.isna(current_vol):
+                    adjusted_params = self._get_regime_adjusted_params(params, current_volatility=current_vol)
+                    stop_loss_atr_mult = adjusted_params.get('stop_loss_atr', 2.0)
+                    take_profit_atr_mult = adjusted_params.get('take_profit_atr', 4.0)
+                    current_leverage = adjusted_params.get('leverage', self.base_leverage)
+
+                # Calculate trend strength for position holding filter
+                current_trend_strength = self._calculate_trend_strength(data, i)
+
             # Check existing positions for stop loss / take profit
-            self._check_exit_conditions(timestamp, row)
+            # Pass trend strength to modify exit behavior
+            self._check_exit_conditions_with_trend(timestamp, row, current_trend_strength)
 
             # Calculate current equity
             equity = self._calculate_equity(current_price)
@@ -267,7 +411,8 @@ class Backtester:
                     side=OrderSide.BUY,
                     position_size_pct=position_size_pct,
                     stop_loss_atr_mult=stop_loss_atr_mult,
-                    take_profit_atr_mult=take_profit_atr_mult
+                    take_profit_atr_mult=take_profit_atr_mult,
+                    leverage=current_leverage
                 )
 
             elif signal < 0:
@@ -325,6 +470,77 @@ class Backtester:
         for position, exit_price, reason in positions_to_close:
             self._close_position(position, timestamp, exit_price, reason)
 
+    def _check_exit_conditions_with_trend(
+        self,
+        timestamp: pd.Timestamp,
+        row: pd.Series,
+        trend_strength: float = 0.0
+    ):
+        """
+        Check exit conditions with trend filter
+
+        In strong uptrends, hold positions longer by:
+        - Ignoring early take profit signals
+        - Giving more room before stop loss
+
+        Args:
+            timestamp: Current timestamp
+            row: Current OHLCV row
+            trend_strength: Current trend strength (-1 to 1)
+        """
+        positions_to_close = []
+
+        for position in self.positions:
+            current_high = row['high']
+            current_low = row['low']
+            current_close = row['close']
+
+            # Check liquidation FIRST (always highest priority)
+            if position.is_liquidated(current_low if position.side == OrderSide.BUY else current_high):
+                exit_price = position.liquidation_price
+                positions_to_close.append((position, exit_price, 'liquidation'))
+                self.liquidations += 1
+                continue
+
+            # For LONG positions in strong UPTREND: hold longer
+            if position.side == OrderSide.BUY and trend_strength > 0.3:
+                # Only exit on stop loss in strong uptrends (let profits run)
+                if position.is_stop_loss_hit(current_low):
+                    exit_price = position.stop_loss * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'stop_loss'))
+
+                # Ignore take profit in strong trends - let it run!
+                # Take profit only if extreme profit (2x the normal TP)
+                elif position.take_profit is not None:
+                    extreme_tp = position.entry_price + (position.take_profit - position.entry_price) * 2
+                    if current_high >= extreme_tp:
+                        exit_price = extreme_tp * (1 - self.slippage)
+                        positions_to_close.append((position, exit_price, 'take_profit_extreme'))
+
+            # For LONG positions in DOWNTREND: exit quickly
+            elif position.side == OrderSide.BUY and trend_strength < -0.3:
+                # Exit on stop loss or take profit (normal behavior)
+                if position.is_stop_loss_hit(current_low):
+                    exit_price = position.stop_loss * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'stop_loss'))
+                elif position.is_take_profit_hit(current_high):
+                    # Take any profit in downtrends
+                    exit_price = position.take_profit * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'take_profit'))
+
+            # Normal conditions (weak trend or sideways)
+            else:
+                if position.is_stop_loss_hit(current_low if position.side == OrderSide.BUY else current_high):
+                    exit_price = position.stop_loss * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'stop_loss'))
+                elif position.is_take_profit_hit(current_high if position.side == OrderSide.BUY else current_low):
+                    exit_price = position.take_profit * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'take_profit'))
+
+        # Close positions
+        for position, exit_price, reason in positions_to_close:
+            self._close_position(position, timestamp, exit_price, reason)
+
     def _open_position(
         self,
         timestamp: pd.Timestamp,
@@ -332,15 +548,20 @@ class Backtester:
         side: OrderSide,
         position_size_pct: float,
         stop_loss_atr_mult: float,
-        take_profit_atr_mult: float
+        take_profit_atr_mult: float,
+        leverage: float = None
     ):
         """Open new position with leverage support"""
+        # Use provided leverage or default to base leverage
+        if leverage is None:
+            leverage = self.base_leverage
+
         entry_price = row['close'] * (1 + self.slippage)  # Apply slippage
         atr = row.get('atr', row['close'] * 0.02)
 
         # Calculate position size WITH LEVERAGE
         margin = self.current_capital * position_size_pct  # Actual capital to use as margin
-        position_value = margin * self.leverage  # Leveraged position size
+        position_value = margin * leverage  # Leveraged position size
 
         # Commission is calculated on full position value (not just margin)
         commission_cost = position_value * self.commission
@@ -364,7 +585,7 @@ class Backtester:
             entry_time=timestamp,
             stop_loss=stop_loss,
             take_profit=take_profit,
-            leverage=self.leverage,
+            leverage=leverage,
             margin_used=margin
         )
 
