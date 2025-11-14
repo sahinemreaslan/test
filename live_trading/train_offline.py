@@ -43,13 +43,25 @@ def train_and_save_model(csv_path: str, config_path: str, output_dir: str = "mod
     print("\n📊 Loading historical data...")
     df = pd.read_csv(csv_path)
 
+    # Normalize column names (lowercase)
+    df.columns = df.columns.str.lower().str.strip()
+
     # Prepare data
-    if 'timestamp' in df.columns:
+    if 'open time' in df.columns:
+        df['open time'] = pd.to_datetime(df['open time'])
+        df = df.set_index('open time')
+        df.index.name = 'timestamp'
+    elif 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df = df.set_index('timestamp')
     elif 'date' in df.columns:
         df['date'] = pd.to_datetime(df['date'])
         df = df.set_index('date')
+        df.index.name = 'timestamp'
+
+    # Keep only OHLCV columns
+    required_cols = ['open', 'high', 'low', 'close', 'volume']
+    df = df[required_cols]
 
     print(f"✅ Loaded {len(df)} candles ({df.index[0]} to {df.index[-1]})")
 
