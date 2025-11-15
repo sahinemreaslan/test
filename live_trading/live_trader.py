@@ -248,16 +248,36 @@ class LiveTradingBot:
             })
 
             # Execute based on signal
-            if signal == 1 and not current_position:
-                # BUY signal and no position
-                self._open_long_position(current_price, metadata, current_data)
+            if signal == 1:  # BUY signal - want LONG position
+                if not current_position:
+                    # No position, open LONG
+                    self._open_long_position(current_price, metadata, current_data)
+                elif current_position['side'] == 'SHORT':
+                    # Have SHORT position, close it and open LONG
+                    logger.info("📊 Reversing position: SHORT → LONG")
+                    self._close_position(current_price, current_position)
+                    time.sleep(2)  # Wait for close to complete
+                    self._open_long_position(current_price, metadata, current_data)
+                else:
+                    # Already in LONG, manage position
+                    self._manage_position(current_price, current_position, current_data)
 
-            elif signal == -1 and current_position:
-                # SELL signal and have position
-                self._close_position(current_price, current_position)
+            elif signal == -1:  # SELL signal - want SHORT position
+                if not current_position:
+                    # No position, open SHORT
+                    self._open_short_position(current_price, metadata, current_data)
+                elif current_position['side'] == 'LONG':
+                    # Have LONG position, close it and open SHORT
+                    logger.info("📊 Reversing position: LONG → SHORT")
+                    self._close_position(current_price, current_position)
+                    time.sleep(2)  # Wait for close to complete
+                    self._open_short_position(current_price, metadata, current_data)
+                else:
+                    # Already in SHORT, manage position
+                    self._manage_position(current_price, current_position, current_data)
 
             elif current_position:
-                # Have position, check for trailing stop or other exits
+                # HOLD signal but have position, check for trailing stop or other exits
                 self._manage_position(current_price, current_position, current_data)
 
             self.last_check_time = datetime.now()
@@ -366,6 +386,107 @@ class LiveTradingBot:
         except Exception as e:
             logger.error(f"❌ Error opening position: {e}", exc_info=True)
 
+    def _open_short_position(self, current_price: float, metadata: Dict, current_data):
+        """Open a short position"""
+        logger.info("\n" + "="*50)
+        logger.info("🔴 SELL SIGNAL - Opening SHORT position")
+        logger.info("="*50)
+
+        try:
+            # Get balance
+            balance = self.binance.get_account_balance()
+            available = balance['available_balance']
+
+            # Calculate position size
+            regime_params = metadata.get('regime_params', {})
+            quantity, position_value = self.strategy.calculate_position_size(
+                balance=available,
+                price=current_price,
+                leverage=self.leverage,
+                regime_params=regime_params
+            )
+
+            # Calculate SL/TP for SHORT
+            atr = float(current_data['close'].pct_change().rolling(14).std().iloc[-1] * current_price)
+            stop_loss, take_profit = self.strategy.calculate_stop_loss_take_profit(
+                entry_price=current_price,
+                side='SHORT',
+                atr=atr,
+                regime_params=regime_params
+            )
+
+            logger.info(f"\n📋 Order Details:")
+            logger.info(f"   Quantity: {quantity:.6f} BTC")
+            logger.info(f"   Value: {position_value:.2f} USDT")
+            logger.info(f"   Entry: ~{current_price:.2f} USDT")
+            logger.info(f"   Stop Loss: {stop_loss:.2f} USDT")
+            logger.info(f"   Take Profit: {take_profit:.2f} USDT")
+            logger.info(f"   Leverage: {self.leverage}x")
+            logger.info(f"   Regime: {metadata.get('regime', 'Unknown')}")
+            logger.info(f"   Confidence: {metadata.get('confidence', 0):.2%}")
+
+            # Log trade to dashboard (paper or real)
+            self.dashboard.add_trade({
+                'type': 'OPEN',
+                'side': 'SHORT',
+                'entry_price': current_price,
+                'quantity': quantity,
+                'regime': metadata.get('regime', 'Unknown'),
+                'confidence': metadata.get('confidence', 0)
+            })
+
+            self.position_opened_at = datetime.now()
+            self.trades_count += 1
+
+            if self.paper_trading:
+                # Store paper trading position
+                self.paper_position = {
+                    'symbol': self.symbol,
+                    'side': 'SHORT',
+                    'quantity': quantity,
+                    'entry_price': current_price,
+                    'unrealized_pnl': 0.0,
+                    'leverage': self.leverage,
+                    'stop_loss': stop_loss,
+                    'take_profit': take_profit,
+                    'opened_at': datetime.now().isoformat()
+                }
+                logger.info("\n📝 PAPER TRADING - No actual order placed")
+                logger.info(f"✅ Paper SHORT position opened: {quantity:.6f} BTC @ ${current_price:.2f}")
+                return
+
+            # Place market sell order (SHORT)
+            order = self.binance.place_market_order(
+                symbol=self.symbol,
+                side='SELL',
+                quantity=quantity
+            )
+
+            if order:
+                # Place stop loss (BUY for SHORT)
+                self.binance.place_stop_loss_order(
+                    symbol=self.symbol,
+                    side='BUY',
+                    quantity=quantity,
+                    stop_price=stop_loss
+                )
+
+                # Place take profit (BUY for SHORT)
+                self.binance.place_take_profit_order(
+                    symbol=self.symbol,
+                    side='BUY',
+                    quantity=quantity,
+                    take_profit_price=take_profit
+                )
+
+                self.position_opened_at = datetime.now()
+                self.trades_count += 1
+
+                logger.info("\n✅ SHORT position opened successfully!")
+
+        except Exception as e:
+            logger.error(f"❌ Error opening SHORT position: {e}", exc_info=True)
+
     def _close_position(self, current_price: float, position: Dict):
         """Close current position"""
         logger.info("\n" + "="*50)
@@ -378,10 +499,16 @@ class LiveTradingBot:
             logger.info(f"Current: {current_price:.2f}")
             logger.info(f"PnL: {position['unrealized_pnl']:.2f} USDT")
 
-            # Calculate PnL percentage
+            # Calculate PnL percentage (different for LONG vs SHORT)
             pnl = position['unrealized_pnl']
             entry_price = position['entry_price']
-            pnl_pct = ((current_price - entry_price) / entry_price * 100) if entry_price > 0 else 0
+            if entry_price > 0:
+                if position['side'] == 'LONG':
+                    pnl_pct = ((current_price - entry_price) / entry_price * 100)
+                else:  # SHORT
+                    pnl_pct = ((entry_price - current_price) / entry_price * 100)
+            else:
+                pnl_pct = 0
 
             # Log trade close to dashboard
             self.dashboard.add_trade({

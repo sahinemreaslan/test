@@ -506,20 +506,47 @@ class Backtester:
                 continue
 
             # Process trading signal
-            if signal > 0 and len(self.positions) < self.max_positions:
-                # Buy signal
-                self._open_position(
-                    timestamp, row,
-                    side=OrderSide.BUY,
-                    position_size_pct=position_size_pct,
-                    stop_loss_atr_mult=stop_loss_atr_mult,
-                    take_profit_atr_mult=take_profit_atr_mult,
-                    leverage=current_leverage
-                )
+            if signal > 0:  # BUY signal - want LONG position
+                # Check if we have SHORT positions to close first
+                short_positions = [p for p in self.positions if p.side == OrderSide.SELL]
+                if short_positions:
+                    # Close all SHORT positions before opening LONG
+                    for position in short_positions:
+                        exit_price = current_price * (1 - self.slippage)
+                        self._close_position(position, timestamp, exit_price, reason="reverse_to_long")
 
-            elif signal < 0:
-                # Sell signal - close all positions
-                self._close_all_positions(timestamp, current_price, reason="sell_signal")
+                # Open LONG if we don't have one yet
+                long_positions = [p for p in self.positions if p.side == OrderSide.BUY]
+                if len(long_positions) < self.max_positions:
+                    self._open_position(
+                        timestamp, row,
+                        side=OrderSide.BUY,
+                        position_size_pct=position_size_pct,
+                        stop_loss_atr_mult=stop_loss_atr_mult,
+                        take_profit_atr_mult=take_profit_atr_mult,
+                        leverage=current_leverage
+                    )
+
+            elif signal < 0:  # SELL signal - want SHORT position
+                # Check if we have LONG positions to close first
+                long_positions = [p for p in self.positions if p.side == OrderSide.BUY]
+                if long_positions:
+                    # Close all LONG positions before opening SHORT
+                    for position in long_positions:
+                        exit_price = current_price * (1 - self.slippage)
+                        self._close_position(position, timestamp, exit_price, reason="reverse_to_short")
+
+                # Open SHORT if we don't have one yet
+                short_positions = [p for p in self.positions if p.side == OrderSide.SELL]
+                if len(short_positions) < self.max_positions:
+                    self._open_position(
+                        timestamp, row,
+                        side=OrderSide.SELL,
+                        position_size_pct=position_size_pct,
+                        stop_loss_atr_mult=stop_loss_atr_mult,
+                        take_profit_atr_mult=take_profit_atr_mult,
+                        leverage=current_leverage
+                    )
 
         # Close any remaining positions at the end
         if self.positions and len(data) > 0:
@@ -629,6 +656,8 @@ class Backtester:
         # Only scale in strong trends matching position direction
         if position.side == OrderSide.BUY and trend_strength < 0.5:
             return False
+        if position.side == OrderSide.SELL and trend_strength > -0.5:
+            return False
 
         # Check if position is in profit (at least 1 ATR)
         atr = row.get('atr', current_price * 0.02)
@@ -736,6 +765,32 @@ class Backtester:
                 elif position.is_take_profit_hit(current_high):
                     # Take any profit in downtrends
                     exit_price = position.take_profit * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'take_profit'))
+
+            # For SHORT positions in strong DOWNTREND: hold longer
+            elif position.side == OrderSide.SELL and trend_strength < -0.3:
+                # Only exit on stop loss in strong downtrends (let profits run)
+                if position.is_stop_loss_hit(current_high):
+                    exit_price = position.stop_loss * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'trailing_stop' if position.enable_trailing_stop else 'stop_loss'))
+
+                # Ignore normal take profit in strong trends - let it run!
+                # Take profit only if extreme profit (2x the normal TP)
+                elif position.take_profit is not None:
+                    extreme_tp = position.entry_price - (position.entry_price - position.take_profit) * 2
+                    if current_low <= extreme_tp:
+                        exit_price = extreme_tp * (1 + self.slippage)  # Positive slippage for SHORT
+                        positions_to_close.append((position, exit_price, 'take_profit_extreme'))
+
+            # For SHORT positions in UPTREND: exit quickly
+            elif position.side == OrderSide.SELL and trend_strength > 0.3:
+                # Exit on stop loss or take profit (normal behavior)
+                if position.is_stop_loss_hit(current_high):
+                    exit_price = position.stop_loss * (1 - self.slippage)
+                    positions_to_close.append((position, exit_price, 'trailing_stop' if position.enable_trailing_stop else 'stop_loss'))
+                elif position.is_take_profit_hit(current_low):
+                    # Take any profit in uptrends
+                    exit_price = position.take_profit * (1 + self.slippage)  # Positive slippage for SHORT
                     positions_to_close.append((position, exit_price, 'take_profit'))
 
             # Normal conditions (weak trend or sideways)
