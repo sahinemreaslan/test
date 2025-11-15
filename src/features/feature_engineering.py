@@ -138,10 +138,10 @@ class FeatureEngineer:
         # Core OHLCV features
         core_features = ['open', 'high', 'low', 'close', 'volume']
 
-        # Fractal features
+        # Fractal features (exclude 'fractal_pattern' as it's a string and gets dropped during ML prep)
         fractal_features = [
-            'fractal_pattern', 'fractal_score', 'trend_strength', 'pattern_momentum',
-            'is_hhhl', 'is_hllh', 'is_inside', 'is_outside'
+            'fractal_score', 'trend_strength', 'pattern_momentum',
+            'is_hhhl', 'is_hllh', 'is_inside', 'is_outside', 'is_undefined'
         ]
 
         # Indicator features
