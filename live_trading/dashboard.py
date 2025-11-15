@@ -10,6 +10,10 @@ from plotly.subplots import make_subplots
 from dashboard_data import DashboardDataManager
 from datetime import datetime, timedelta
 import time
+import plotly.io as pio
+
+# Fix plotly recursion error
+pio.templates.default = "plotly"
 
 # Page config
 st.set_page_config(
