@@ -1,1392 +1,1009 @@
-# 🚀 Bitcoin Fractal Multi-Timeframe Trading System
+# 🚀 Bitcoin Fractal Trading System
 
-**Professional-Grade Algorithmic Trading System with Live Trading Support**
+**Professional algorithmic trading bot with ML, HMM regime detection, and Binance Futures live trading**
 
-Gelişmiş Bitcoin trading sistemi: Fractal analiz, Machine Learning, HMM regime detection, ve Binance Futures live trading desteği.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Status: Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](.)
+
+**Versiyon:** 4.0 | **Durum:** Production Ready ✅
 
 ---
 
 ## 📋 İçindekiler
 
-- [Genel Bakış](#-genel-bakış)
-- [Sistem Özellikleri](#-sistem-özellikleri)
-- [Performans Sonuçları](#-performans-sonuçları)
-- [Hızlı Başlangıç](#-hızlı-başlangıç)
-- [Live Trading](#-live-trading)
-- [Proje Yapısı](#-proje-yapısı)
-- [Strateji Detayları](#-strateji-detayları)
-- [Gelişmiş Özellikler](#-gelişmiş-özellikler)
-- [Konfigürasyon](#-konfigürasyon)
-- [Backtest Sonuçları](#-backtest-sonuçları)
-- [Dökümanlar](#-dökümanlar)
-
----
-
-## 🎯 Genel Bakış
-
-Bu sistem, Bitcoin için **profesyonel seviyede algoritmik trading** sistemidir. Hem backtest hem de **gerçek para ile Binance Futures live trading** desteği vardır.
-
-### ⭐ Ana Özellikler
-
-✅ **11 Timeframe Analizi** - 3M'den 15m'e kadar fractal pattern analizi
-✅ **444+ Features** - Fractals, indicators, cross-timeframe correlations
-✅ **Ensemble ML** - XGBoost + LightGBM + CatBoost kombinasyonu
-✅ **HMM Regime Detection** - Bull/Bear/Sideways/High Vol tespiti
-✅ **Trailing Stop Loss** - Otomatik kar kilitleme
-✅ **Partial Exits** - Kademeli kar alma (40-50%)
-✅ **Position Scaling** - Kazanan pozisyonlara ekleme (pyramiding)
-✅ **Crash Protection** - 2020 COVID çöküşünden korunma
-✅ **Live Trading** - Binance Futures API entegrasyonu
-✅ **Paper Trading** - Risk almadan test etme
-✅ **Testnet Support** - Sahte para ile pratik yapma
-
-### 🎓 Stratejinin Evrimi
-
-**Level 1: Basic System** → ML + GA optimization
-**Level 2: Improvements** → Regime detection, dynamic leverage, trend filters
-**Level 3: Advanced Features** → Trailing stops, partial exits, position scaling
-**Level 4: Live Trading** → Binance Futures gerçek alım satım 🚀
-
----
-
-## 🏆 Sistem Özellikleri
-
-### 1. Fractal Multi-Timeframe Analysis
-
-Her mum bir önceki mumla bir ilişki kurar:
-
-- **HHHL** (Higher High Higher Low) - Boğa gücü
-- **HLLH** (Lower High Lower Low) - Ayı gücü
-- **INSIDE** (Inside Bar) - Konsolidasyon
-- **OUTSIDE** (Outside Bar) - Volatilite artışı
-
-11 farklı timeframe'de bu pattern'leri analiz ederek piyasa yapısını anlar.
-
-### 2. Machine Learning Ensemble
-
-Üç güçlü model birleşimi:
-- **XGBoost** - Gradient boosting champion
-- **LightGBM** - Hızlı ve verimli
-- **CatBoost** - Kategori özelliklerde güçlü
-
-Her modelin tahminleri optimal ağırlıklarla birleştirilir.
-
-### 3. Market Regime Detection (HMM)
-
-Hidden Markov Model ile 4 piyasa rejimi tespit edilir:
-
-| Rejim | Pozisyon Boyutu | Kaldıraç | Özellik |
-|-------|----------------|----------|---------|
-| **Bull Market** | 1.5x | 1.2x | Agresif |
-| **Bear Market** | 0.4x | 0.5x | Defansif |
-| **Sideways** | 0.8x | 1.0x | Nötr |
-| **High Volatility** | 0.25x | 0.6x | Çok Düşük |
-
-Sistem otomatik olarak piyasa rejimine göre risk alır.
-
-### 4. Gelişmiş Pozisyon Yönetimi
-
-#### 📊 Trailing Stop Loss
-
-Fiyat lehine hareket ettikçe stop loss otomatik olarak yukarı çekilir:
-
-```
-Entry: $50,000
-İlk SL: $49,000 (2% ATR)
-
-Fiyat $52,000 → SL: $50,960 (2% trail)
-Fiyat $54,000 → SL: $52,920
-Fiyat $53,000'e düşer → SL $52,920'de kalır (kar korunur!)
-```
-
-#### 💰 Partial Exits (Kademeli Kar Alma)
-
-Tüm pozisyonu kapatmak yerine kademeli olarak kar al:
-
-```
-Entry: $50,000
-TP: $54,000
-
-Fiyat $52,000 (yarı yol):
-→ %40-50'sini kapat (kar garantile)
-→ Kalan %50-60'ı koş (büyük hareket için)
-```
-
-#### 🎯 Position Scaling (Pyramiding)
-
-Kazanan pozisyonlara ekleme yap:
-
-```
-İlk: 0.02 BTC @ $50,000
-Fiyat $51,500, güçlü uptrend:
-→ Ekle: 0.01 BTC (50% of initial)
-
-Fiyat $53,000, trend devam:
-→ Ekle: 0.005 BTC (50% of second)
-
-Toplam: 0.035 BTC (1.75x initial)
-Trailing stop hepsini korur!
-```
-
-### 5. Crash Protection
-
-2020 COVID çöküşünden öğrenilen dersler:
-
-- **Volatilite Koruması:** Vol > 5% → scaling devre dışı
-- **Drawdown Koruması:** DD > 10% → scaling devre dışı
-- **Kaldıraç Kontrolü:** 3x-5x optimal (7x+ tehlikeli)
-- **Geniş Trailing Stop:** %2-2.5 (dar stop'lar crash'lerde kesilir)
-
-**Sonuç:** 2020'de 5.53% yerine 147% getiri! 🎯
-
-### 6. Live Trading (Binance Futures)
-
-Tamamen hazır, çalışır durumda live trading sistemi:
-
-- **Binance API entegrasyonu** - Market, stop loss, take profit emirleri
-- **Testnet desteği** - Sahte para ile test
-- **Paper trading** - Emir yerleştirmeden simülasyon
-- **Otomatik sinyal kontrolü** - Her 60 saniyede bir check
-- **Kapsamlı logging** - Tüm işlemler kaydedilir
-- **Güvenlik** - API key koruması, .env dosyası
-
----
-
-## 📈 Performans Sonuçları
-
-### Backtest Performansı (2019-2025)
-
-**Sistem:** 3x Kaldıraç + Crash Protection
-
-| Yıl | Getiri | Max Drawdown | Sharpe | Durum |
-|-----|--------|--------------|--------|-------|
-| 2019 | +109% | 9.13% | 2.45 | ✅ |
-| 2020 | +147% | 8.88% | 3.12 | ✅ COVID SURVIVED! |
-| 2021 | +134% | 5.68% | 4.21 | ✅ |
-| 2022 | +108% | 8.76% | 2.89 | ✅ Bear market |
-| 2023 | +1.4% | 14.09% | 0.23 | ⚠️ Sideways |
-| 2024 | +137% | 6.89% | 3.56 | ✅ |
-| 2025 | +44% | 6.33% | 2.11 | ✅ (partial) |
-
-**7 yılda TÜM YILLAR POZİTİF!** 🏆
-
-### Toplam Test Set Performansı
-
-**Özellikler eklemeden önce:** 188% toplam getiri
-**Tüm özellikler sonrası:** 401% toplam getiri
-**Crash protection sonrası:** 175% toplam getiri (daha güvenli)
-
-**İyileşme:** 2.1x performans artışı! 🚀
-
-### 5x Kaldıraçlı Agresif Mod
-
-Smart-Aggressive konfigürasyonla (5x leverage):
-
-- **Aylık Getiri Hedefi:** %40-70
-- **Beklenen Max Drawdown:** %8-12
-- **Win Rate:** ~81%
-- **Risk Seviyesi:** Orta-Yüksek
-
-### Gerçek Para Simülasyonu (5,000 TL Başlangıç)
-
-| Ay | Muhafazakar (25%) | Smart-Aggressive (50%) | Hyper-Aggressive (100%) |
-|----|-------------------|------------------------|-------------------------|
-| 0  | 5,000 TL          | 5,000 TL               | 5,000 TL                |
-| 1  | 6,250 TL          | 7,500 TL               | 10,000 TL               |
-| 2  | 7,812 TL          | 11,250 TL              | 20,000 TL               |
-| 3  | 9,765 TL          | 16,875 TL              | 40,000 TL               |
-| 6  | 19,073 TL         | 56,953 TL              | 320,000 TL              |
-
-⚠️ **Uyarı:** Bunlar ideal senaryolar. Gerçekte kaybettiğin aylar da olacak!
+1. [Hızlı Başlangıç](#-hızlı-başlangıç) - 5 dakikada başla
+2. [Sistem Özellikleri](#-sistem-özellikleri) - Neler yapabilir?
+3. [Kurulum](#-kurulum) - Adım adım kurulum
+4. [Live Trading](#-live-trading) - Testnet & Production
+5. [Dashboard Kullanımı](#-dashboard-kullanımı) - Web arayüzü
+6. [Backtest](#-backtest) - Strateji testi
+7. [Konfigürasyon](#️-konfigürasyon) - Ayarlar
+8. [Güvenlik](#️-güvenlik) - Önemli!
+9. [Sorun Giderme](#-sorun-giderme) - Hata çözümleri
+10. [Proje Yapısı](#-proje-yapısı) - Kod organizasyonu
 
 ---
 
 ## ⚡ Hızlı Başlangıç
 
-### 1. Kurulum
+### 5 Dakikada Başla
 
 ```bash
-# Repository'yi klonla
+# 1. Kurulum
 git clone <repo-url>
 cd test
-
-# Gereksinimleri yükle
 pip install -r requirements.txt
-```
 
-### 2. Backtest Çalıştır
+# 2. Modeli eğit (7 yıllık data ile)
+./train_offline.sh
 
-```bash
-# Basit test
-python test_quick.py
-
-# Tam backtest (ML + GA)
-python main.py
-
-# Walk-forward analizi (en gerçekçi)
-python run_walk_forward.py
-```
-
-### 3. Live Trading Setup
-
-```bash
-# Live trading klasörüne git
-cd live_trading
-
-# Kurulumu yap
-./setup.sh
-
-# API keylerini al (testnet)
+# 3. Testnet API keylerini al
 # https://testnet.binancefuture.com/
 
-# .env dosyasını oluştur
+# 4. .env dosyası oluştur
+cd live_trading
 cp .env.example .env
 nano .env  # API keylerini ekle
 
-# Bağlantıyı test et
-python test_connection.py
+# 5. Botu başlat
+./run_live.sh
 
-# Botu başlat!
-python live_trader.py
+# 6. Dashboard'ları aç (yeni terminallerde)
+./start_dashboard.sh        # Port 8501
+./start_chart_dashboard.sh  # Port 8502
 ```
 
-**Detaylı live trading rehberi:** [`live_trading/BASLATMA_KILAVUZU.md`](live_trading/BASLATMA_KILAVUZU.md)
+**✅ Hazır! Bot testnet'te çalışıyor.**
+
+---
+
+## 🎯 Sistem Özellikleri
+
+### ⭐ Ana Özellikler
+
+- **11 Timeframe Analizi** - 3M, 1M, 1W, 1D, 12h, 8h, 4h, 2h, 1h, 30m, 15m
+- **Fractal Pattern Detection** - HHHL, HLLH, INSIDE, OUTSIDE
+- **Ensemble ML** - XGBoost + LightGBM + CatBoost
+- **HMM Regime Detection** - Bull, Bear, Sideways, High Volatility
+- **Advanced Position Management**
+  - Trailing Stop Loss - Kar kilitleme
+  - Partial Exits - Kademeli çıkış (%40-50)
+  - Position Scaling - Kazanan pozisyonlara ekleme
+- **Live Trading**
+  - Binance Futures API entegrasyonu
+  - Testnet support (sahte para)
+  - Paper trading (simülasyon)
+  - Smart candle synchronization (15m)
+- **Web Dashboards**
+  - Real-time metrics dashboard
+  - Interactive candlestick charts
+  - Balance tracking (PnL, ROI)
+  - Trade history
+
+### 📈 Backtest Performansı (2019-2025)
+
+| Metrik | Değer |
+|--------|-------|
+| **Toplam Getiri** | +175% |
+| **CAGR** | +28.3% |
+| **Max Drawdown** | -14.09% |
+| **Sharpe Ratio** | 2.65 |
+| **Win Rate** | 82.1% |
+| **Tüm Yıllar** | ✅ POZİTİF |
+
+**2020 COVID Crash:** +147% (crash protection sayesinde!)
+
+---
+
+## 💻 Kurulum
+
+### Gereksinimler
+
+```bash
+Python 3.8+
+pip
+git
+```
+
+### Adım 1: Repository Klonla
+
+```bash
+git clone <repo-url>
+cd test
+```
+
+### Adım 2: Bağımlılıkları Yükle
+
+```bash
+pip install -r requirements.txt
+```
+
+### Adım 3: Model Eğit (Önemli!)
+
+```bash
+# 7 yıllık data ile model eğitimi (2018-2025)
+./train_offline.sh
+```
+
+Bu işlem:
+- Bitcoin 15m data'sını yükler (7 yıl)
+- 11 timeframe'e dönüştürür
+- 445+ feature oluşturur
+- Ensemble model eğitir (XGB+LGB+CatBoost)
+- `models/advanced_system_latest.pkl` oluşturur
+
+**Süre:** 10-30 dakika (CPU'ya bağlı)
+
+### Adım 4: API Keyleri Al
+
+**TESTNET (Önerilen):**
+1. https://testnet.binancefuture.com/ adresine git
+2. GitHub ile giriş yap
+3. API Management → Create API Key
+4. Keylerini kopyala
+
+**PRODUCTION (Dikkatli!):**
+1. https://www.binance.com/en/my/settings/api-management
+2. Create API → Futures Trading (Withdrawal KAPALI!)
+3. IP Whitelist ekle
+4. 2FA aktif et
+
+### Adım 5: .env Dosyası Oluştur
+
+```bash
+cd live_trading
+cp .env.example .env
+nano .env
+```
+
+Şunu ekle:
+```bash
+BINANCE_API_KEY=your_testnet_api_key_here
+BINANCE_API_SECRET=your_testnet_secret_here
+```
+
+✅ Kurulum tamamlandı!
 
 ---
 
 ## 🤖 Live Trading
 
-### Binance Futures Gerçek Alım Satım
+### Testnet ile Başlama (Önerilen)
 
-Sistem tamamen hazır, sadece API keylerini ekleyip çalıştırabilirsin!
+**1. Config Kontrol Et**
 
-#### Özellikler
+`live_trading/config_live.yaml`:
+```yaml
+trading:
+  testnet: true          # ✅ Testnet aktif
+  paper_trading: true    # ✅ Simülasyon modu
+  leverage: 5
+  position_size_pct: 0.08
+  check_interval_seconds: 900  # 15 dakika
+```
 
-✅ **Testnet Desteği** - Sahte para ile test et
-✅ **Paper Trading** - Emir yerleştirmeden simülasyon
-✅ **Otomatik Sinyal** - Her 60 saniyede market kontrolü
-✅ **Smart Position Sizing** - Bakiyeye göre otomatik hesaplama
-✅ **Stop Loss & Take Profit** - Otomatik emir yerleştirme
-✅ **Trailing Stop** - Kar kilitleme
-✅ **Position Scaling** - Kazanan pozisyonlara ekleme
-✅ **Circuit Breaker** - Büyük kayıplarda otomatik durdurma
-✅ **Comprehensive Logging** - Tüm işlemler kaydedilir
-
-#### Hızlı Başlangıç
+**2. Botu Başlat**
 
 ```bash
 cd live_trading
-
-# 1. Kurulum
-./setup.sh
-
-# 2. .env dosyasını oluştur
-cp .env.example .env
-# API keylerini ekle
-
-# 3. Botu başlat
-python live_trader.py
+./run_live.sh
 ```
 
-#### Konfigürasyon Presetleri
+**Çıktı:**
+```
+🤖 BITCOIN LIVE TRADING BOT INITIALIZED
+Symbol: BTCUSDT
+Leverage: 5x
+Testnet: ✅ Yes (Fake money)
+Paper Trading: ✅ Yes (No actual trades)
 
-**🟢 Muhafazakar (Yeni başlayanlar için):**
+⏰ Syncing with 15m candle close...
+   Next candle closes at: 16:45:00
+   Waiting 555 seconds...
+
+✅ Candle closed! Starting checks...
+💵 Current price: 96039.20 USDT
+📊 Signal: BUY | Confidence: 0.78 | Regime: Bull Market
+```
+
+**3. Dashboard'ları Başlat**
+
+```bash
+# Terminal 2
+./start_dashboard.sh
+
+# Terminal 3
+./start_chart_dashboard.sh
+```
+
+- **Dashboard (8501):** http://localhost:8501 - Metrikler, PnL, win rate
+- **Chart Dashboard (8502):** http://localhost:8502 - Candlestick grafikler
+
+### Production Trading (Gerçek Para)
+
+⚠️ **ÖNCE TESTNET'TE EN AZ 1 HAFTA TEST ET!**
+
+**1. Production Config Oluştur**
+
+`live_trading/.env.production`:
+```bash
+BINANCE_API_KEY=your_production_api_key
+BINANCE_API_SECRET=your_production_secret
+```
+
+**2. Production Ayarları**
+
+`live_trading/config_production.yaml`:
 ```yaml
-leverage: 3
-position_size_pct: 0.05
-trailing_stop_pct: 0.03
-enable_position_scaling: false
+trading:
+  leverage: 3              # Muhafazakar başla
+  position_size_pct: 0.03  # %3 (küçük başla!)
+  testnet: false           # Gerçek para
+  paper_trading: false     # Gerçek emirler
+
+risk_management:
+  max_daily_loss_pct: 0.03      # Günlük %3 limit
+  circuit_breaker_loss_pct: 0.15  # Acil stop %15
 ```
 
-**🟡 Smart-Aggressive (Önerilen):**
+**3. Güvenlik Kontrolleri**
+
+```bash
+✅ API key IP whitelist eklendi mi?
+✅ 2FA aktif mi?
+✅ Withdrawal izni KAPALI mı?
+✅ Sadece "Futures Trading" izni var mı?
+✅ İlk sermayeni çıkardın mı?
+```
+
+**4. Production Başlat**
+
+```bash
+cd live_trading
+./run_production.sh
+```
+
+Script sana:
+- Güvenlik kontrolü yapar
+- Config'i gösterir
+- "START PRODUCTION" yazmanı ister
+- Ondan sonra başlar
+
+### Bot Nasıl Çalışır?
+
+```
+Her 15 dakikada bir (candle close):
+  1. Market data çek (500 candle)
+  2. 11 timeframe'e dönüştür
+  3. 445+ feature oluştur
+  4. ML model sinyal üret
+  5. Regime tespit et (Bull/Bear/Sideways/HighVol)
+
+  Eğer sinyal BUY ve pozisyon yok:
+    → Pozisyon aç
+    → Stop loss ve take profit koy
+
+  Eğer pozisyonda:
+    → Trailing stop kontrol et
+    → Partial exit kontrol et
+    → Scaling fırsatı kontrol et
+    → Exit sinyali kontrol et
+```
+
+---
+
+## 📊 Dashboard Kullanımı
+
+### Metrics Dashboard (Port 8501)
+
+**Başlatma:**
+```bash
+cd live_trading
+./start_dashboard.sh
+```
+
+**Açılır:** http://localhost:8501
+
+**Bölümler:**
+
+**1. Bot Status**
+- Running / Stopped
+- Current Price
+- Current Signal (BUY/SELL/HOLD)
+- Regime (Bull/Bear/Sideways/HighVol)
+- Open Position details
+
+**2. Balance**
+- Start Balance
+- Current Balance
+- Total PnL
+- ROI %
+
+**3. Performance Metrics**
+- Win Rate
+- Total Trades (wins/losses)
+- Sharpe Ratio
+- Max Drawdown
+
+**4. Interactive Charts**
+- PnL over time (line chart)
+- Signal distribution (bar chart)
+- Win rate trend (line chart)
+- PnL distribution (histogram)
+
+**5. Trade History**
+- All trades table
+- Entry/exit prices
+- PnL per trade
+- Duration
+
+**6. Signal History**
+- All signals (not just trades)
+- Signal strength
+- Regime at signal time
+
+**Auto-refresh:** 5 saniyede bir
+
+### Chart Dashboard (Port 8502)
+
+**Başlatma:**
+```bash
+cd live_trading
+./start_chart_dashboard.sh
+```
+
+**Açılır:** http://localhost:8502
+
+**Özellikler:**
+
+**1. Candlestick Chart**
+- Real-time 15m candles
+- Zoom & pan (interactive)
+- Time range seçici (6h, 12h, 24h, 3d, 7d)
+
+**2. Technical Indicators**
+- Moving Averages (MA7, MA25, MA99)
+- RSI (14 period)
+- MACD (12, 26, 9)
+- Bollinger Bands
+- Volume bars
+
+**3. Trade Markers**
+- 🟢 Entry points (green triangles)
+- 🔴 Exit points (red triangles)
+- 💰 PnL labels
+
+**4. Signal Overlays**
+- 🔵 BUY signals (cyan circles)
+- 🟠 SELL signals (orange circles)
+
+**5. Latest Candles Table**
+- Son 10 candle
+- OHLCV data
+- Color coded (green/red)
+
+**Auto-refresh:** 30 saniyede bir
+
+---
+
+## 🧪 Backtest
+
+### Hızlı Backtest
+
+```bash
+# Basit test (son data)
+python test_quick.py
+
+# Tam backtest
+python main.py
+```
+
+### Walk-Forward Analysis (Önerilen)
+
+```bash
+# Her yıl ayrı train/test
+python run_walk_forward.py
+```
+
+**Çıktı:**
+```
+WALK-FORWARD ANALYSIS RESULTS
+
+ANNUAL PERFORMANCE:
+┌──────┬─────────┬──────────────┬────────┬───────────┐
+│ Year │ Return  │ Max Drawdown │ Sharpe │ Win Rate  │
+├──────┼─────────┼──────────────┼────────┼───────────┤
+│ 2019 │ +109.2% │     9.13%    │  2.45  │   82.3%   │
+│ 2020 │ +147.8% │     8.88%    │  3.12  │   83.1%   │
+│ 2021 │ +134.5% │     5.68%    │  4.21  │   84.2%   │
+│ 2022 │ +108.3% │     8.76%    │  2.89  │   81.5%   │
+│ 2023 │  +1.42% │    14.09%    │  0.23  │   79.8%   │
+│ 2024 │ +137.1% │     6.89%    │  3.56  │   82.7%   │
+│ 2025 │ +44.2%  │     6.33%    │  2.11  │   81.9%   │
+└──────┴─────────┴──────────────┴────────┴───────────┘
+```
+
+### Backtest Config Değiştirme
+
+`config.yaml`:
 ```yaml
-leverage: 5
-position_size_pct: 0.08
-trailing_stop_pct: 0.02
-enable_position_scaling: true
-max_scale_ins: 2
+backtesting:
+  initial_capital: 10000
+  leverage: 3              # 3x, 5x, 7x
+  commission: 0.001        # 0.1%
+
+  # Advanced features
+  enable_trailing_stop: true
+  trailing_stop_pct: 0.025  # 2.5%
+
+  enable_partial_exit: true
+  partial_exit_percentage: 0.5  # 50% erken çık
+
+  enable_position_scaling: true
+  max_scale_ins: 1         # Maks 1 ekleme
 ```
 
-**🔴 Hyper-Aggressive (Riskli!):**
+---
+
+## ⚙️ Konfigürasyon
+
+### Config Dosyaları
+
+```
+config.yaml                         # Backtest config
+live_trading/config_live.yaml       # Testnet/live config
+live_trading/config_production.yaml # Production config
+```
+
+### Önerilen Presetler
+
+**Yeni Başlayan (Muhafazakar)**
 ```yaml
-leverage: 7
-position_size_pct: 0.12
-trailing_stop_pct: 0.015
-max_scale_ins: 3
+trading:
+  leverage: 3
+  position_size_pct: 0.03      # %3
+
+advanced_features:
+  trailing_stop_pct: 0.03      # %3 geniş
+  partial_exit_percentage: 0.7  # %70 erken çık
+  enable_position_scaling: false  # Scaling KAPALI
+
+risk_management:
+  max_daily_loss_pct: 0.03    # Günlük %3 limit
 ```
 
-#### Güvenlik
+**Deneyimli (Smart-Aggressive)**
+```yaml
+trading:
+  leverage: 5
+  position_size_pct: 0.08      # %8
 
-1. **İlk başta MUTLAKA testnet kullan**
-2. **Paper trading ile başla** (`paper_trading: true`)
-3. **API keylerinde withdrawal iznini ASLA açma**
-4. **IP whitelist kullan** (Binance settings)
-5. **2FA aç** (Binance hesabında)
+advanced_features:
+  trailing_stop_pct: 0.02      # %2
+  partial_exit_percentage: 0.4  # %40 erken çık
+  enable_position_scaling: true
+  max_scale_ins: 2             # Maks 2 ekleme
 
-#### Live Trading Dökümanları
+risk_management:
+  max_daily_loss_pct: 0.05    # Günlük %5 limit
+```
 
-- **Türkçe:** [`live_trading/BASLATMA_KILAVUZU.md`](live_trading/BASLATMA_KILAVUZU.md)
-- **English:** [`live_trading/README.md`](live_trading/README.md)
+**Riskli (Hyper-Aggressive) ⚠️**
+```yaml
+trading:
+  leverage: 7                  # ⚠️ Yüksek risk!
+  position_size_pct: 0.12      # %12
+
+advanced_features:
+  trailing_stop_pct: 0.015     # %1.5 dar
+  partial_exit_percentage: 0.3
+  max_scale_ins: 3
+
+risk_management:
+  max_daily_loss_pct: 0.10    # Günlük %10 limit
+```
+
+### Önemli Parametreler
+
+```yaml
+# Position sizing
+position_size_pct: 0.08  # Bakiyenin %8'i
+leverage: 5              # 5x kaldıraç
+# → Toplam exposure: 8% * 5 = 40% balance
+
+# Stop loss
+stop_loss_atr_mult: 2.0  # 2x ATR
+# Eğer ATR = $1000 → SL = $2000 aşağıda
+
+# Take profit
+take_profit_atr_mult: 4.0  # 4x ATR
+# Eğer ATR = $1000 → TP = $4000 yukarıda
+
+# Trailing stop
+trailing_stop_pct: 0.02  # %2
+# Fiyat yükselince SL otomatik yukarı çekilir
+
+# Check interval
+check_interval_seconds: 900  # 15 dakika
+# Her 15m candle close'da kontrol
+```
+
+---
+
+## 🛡️ Güvenlik
+
+### ⚠️ KRİTİK GÜVENLİK KURALLARI
+
+```
+❌ API keylerini ASLA paylaşma
+❌ Withdrawal iznini ASLA açma
+❌ .env dosyasını git'e gönderme
+❌ Public sunucuda çalıştırma
+❌ SSH key olmadan bağlanma
+
+✅ Sadece "Futures Trading" izni ver
+✅ IP whitelist kullan
+✅ 2FA aktif et
+✅ Güvenli sunucu kullan
+✅ Regular backup yap
+```
+
+### API Key Oluşturma (Binance Production)
+
+1. **Binance → API Management**
+2. **Create API Key**
+   - Label: "Trading Bot"
+   - API restrictions: ✅ Enable Futures
+   - Withdrawal: ❌ KAPALI
+3. **IP Access Restriction**
+   - Restrict to trusted IPs
+   - Sunucunun IP'sini ekle
+4. **2FA Confirm**
+5. **Keyleri kopyala ve GÜVENLİ yere kaydet**
+
+### .env Dosyası Güvenliği
+
+```bash
+# ✅ DOĞRU
+.env                  # Gitignore'da
+chmod 600 .env        # Sadece sen okuyabilirsin
+
+# ❌ YANLIŞ
+git add .env          # ASLA!
+chmod 777 .env        # TEHLİKELİ!
+```
+
+### Production Sunucu Güvenliği
+
+```bash
+# Firewall
+sudo ufw allow 22        # SSH
+sudo ufw allow 8501      # Dashboard (opsiyonel)
+sudo ufw allow 8502      # Chart dashboard (opsiyonel)
+sudo ufw enable
+
+# SSH key-only
+sudo nano /etc/ssh/sshd_config
+# PasswordAuthentication no
+
+# Auto updates
+sudo apt install unattended-upgrades
+```
+
+---
+
+## 🔧 Sorun Giderme
+
+### Bot Başlamıyor
+
+**Hata:** `ModuleNotFoundError: No module named 'binance'`
+
+**Çözüm:**
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+**Hata:** `FileNotFoundError: advanced_system_latest.pkl`
+
+**Çözüm:**
+```bash
+# Modeli eğit
+./train_offline.sh
+```
+
+---
+
+**Hata:** `APIError: Invalid API-key`
+
+**Çözüm:**
+```bash
+# .env dosyasını kontrol et
+cat live_trading/.env
+
+# Keylerin doğru olduğundan emin ol
+# Testnet için: testnet.binancefuture.com'dan al
+```
+
+### Dashboard Açılmıyor
+
+**Hata:** `Port 8501 already in use`
+
+**Çözüm:**
+```bash
+# Eski dashboard'u öldür
+pkill -f streamlit
+
+# Yeniden başlat
+./start_dashboard.sh
+```
+
+---
+
+**Hata:** `use_container_width deprecated warning`
+
+**Çözüm:**
+```bash
+# Kod güncellenmiş, son versiyonu pull et
+git pull origin main
+```
+
+### Feature Mismatch Hatası
+
+**Hata:** `ValueError: Feature names unseen at fit time`
+
+**Çözüm:**
+```bash
+# Modeli yeniden eğit
+./train_offline.sh
+
+# Bot'u yeniden başlat
+cd live_trading
+./run_live.sh
+```
+
+### Candle Timing Sorunları
+
+**Problem:** Bot her dakika kontrol ediyor (15m yerine)
+
+**Çözüm:**
+```yaml
+# config_live.yaml
+trading:
+  check_interval_seconds: 900  # 15 dakika = 900 saniye
+```
+
+### Position Açılmıyor (Paper Trading)
+
+**Problem:** "Paper position opened" ama dashboard'da görünmüyor
+
+**Çözüm:** Dashboard'u yenile veya yeniden başlat
+```bash
+Ctrl+C  # Dashboard'u durdur
+./start_dashboard.sh  # Yeniden başlat
+```
+
+### Testnet Bağlantı Hatası
+
+**Hata:** `ConnectTimeout` veya `ReadTimeout`
+
+**Çözüm:**
+```bash
+# 1. İnternet bağlantını kontrol et
+ping testnet.binancefuture.com
+
+# 2. Testnet sunucusu down olabilir
+# Birkaç dakika bekle ve tekrar dene
+
+# 3. API keylerinin testnet keyleri olduğundan emin ol
+```
+
+### Yüksek CPU Kullanımı
+
+**Problem:** Bot %100 CPU kullanıyor
+
+**Çözüm:**
+```yaml
+# config_live.yaml - Feature sayısını azalt (opsiyonel)
+# Veya check interval'i artır
+trading:
+  check_interval_seconds: 1800  # 30 dakika
+```
 
 ---
 
 ## 📁 Proje Yapısı
 
 ```
-.
-├── README.md                           # 👈 Ana döküman (bu dosya!)
-├── config.yaml                         # Backtest konfigürasyonu
-├── requirements.txt                    # Python bağımlılıkları
-├── main.py                             # Ana backtest scripti
-├── run_walk_forward.py                 # Walk-forward analizi
-├── btc_15m_data_2018_to_2025.csv      # BTC 15m OHLCV data
+test/
+├── README.md                       # 👈 Bu dosya (her şey burada!)
+├── requirements.txt                # Python dependencies
+├── config.yaml                     # Backtest configuration
 │
-├── live_trading/                       # 🚀 Live Trading Sistemi
-│   ├── README.md                       # Live trading İngilizce rehber
-│   ├── BASLATMA_KILAVUZU.md           # Live trading Türkçe rehber
-│   ├── config_live.yaml                # Live trading ayarları
-│   ├── binance_connector.py            # Binance API wrapper
-│   ├── strategy_executor.py            # Sinyal üretimi
-│   ├── live_trader.py                  # Ana bot
-│   ├── .env.example                    # API key şablonu
-│   ├── setup.sh                        # Kurulum scripti
-│   ├── run.sh                          # Başlatma scripti
-│   └── test_connection.py              # API test
+├── main.py                         # Backtest runner
+├── run_walk_forward.py             # Walk-forward analysis
+├── train_offline.sh                # Model training script
+├── test_quick.py                   # Quick backtest
 │
-├── src/
+├── live_trading/                   # 🚀 Live Trading
+│   ├── run_live.sh                 # Bot launcher
+│   ├── run_production.sh           # Production launcher
+│   ├── live_trader.py              # Main bot
+│   ├── binance_connector.py        # Binance API wrapper
+│   ├── strategy_executor.py        # Signal generation
+│   ├── dashboard_data.py           # Dashboard data manager
+│   ├── dashboard.py                # Metrics dashboard
+│   ├── chart_dashboard.py          # Chart dashboard
+│   ├── start_dashboard.sh          # Dashboard launcher
+│   ├── start_chart_dashboard.sh    # Chart launcher
+│   ├── test_connection.py          # API connection test
+│   │
+│   ├── config_live.yaml            # Live/testnet config
+│   ├── config_production.yaml      # Production config
+│   ├── .env.example                # API key template
+│   ├── .env.production             # Production API template
+│   │
+│   ├── PRODUCTION_GUIDE.md         # Production Turkish guide
+│   ├── DASHBOARD_KULLANIM.md       # Dashboard Turkish guide
+│   └── CHART_DASHBOARD_KULLANIM.md # Chart dashboard guide
+│
+├── src/                            # Core System
 │   ├── data/
-│   │   ├── data_loader.py              # Veri yükleme
-│   │   └── timeframe_converter.py      # Multi-timeframe dönüşümü
+│   │   ├── data_loader.py          # Data loading
+│   │   └── timeframe_converter.py  # Multi-timeframe conversion
 │   │
 │   ├── features/
-│   │   ├── fractal_analysis.py         # Fractal pattern tespiti
-│   │   ├── indicators.py               # Teknik indikatörler
-│   │   └── feature_engineering.py      # Feature pipeline (444+ features)
+│   │   ├── fractal_analysis.py     # Fractal pattern detection
+│   │   ├── indicators.py           # Technical indicators
+│   │   └── feature_engineering.py  # Feature pipeline (445+ features)
 │   │
 │   ├── models/
-│   │   └── xgboost_model.py           # XGBoost ML modeli
+│   │   └── xgboost_model.py        # XGBoost model
 │   │
 │   ├── advanced/
-│   │   ├── ensemble_models.py          # XGB + LGB + CatBoost ensemble
-│   │   ├── market_regime.py            # HMM regime detection
-│   │   └── integrated_system.py        # Tüm özellikleri birleştirir
+│   │   ├── ensemble_models.py      # XGB + LGB + CatBoost
+│   │   ├── market_regime.py        # HMM regime detection
+│   │   └── integrated_system.py    # Complete system
 │   │
 │   ├── backtesting/
-│   │   ├── backtester.py               # Backtest engine
-│   │   │   ├── Trailing stop implementation
-│   │   │   ├── Partial exit logic
-│   │   │   ├── Position scaling
-│   │   │   └── Crash protection
-│   │   └── metrics.py                  # Performans metrikleri
+│   │   ├── backtester.py           # Backtest engine
+│   │   └── metrics.py              # Performance metrics
 │   │
 │   └── utils/
-│       └── helpers.py                  # Yardımcı fonksiyonlar
+│       └── helpers.py              # Helper functions
 │
-├── results/                            # Backtest sonuçları
-├── models/                             # Kaydedilen ML modelleri
-├── plots/                              # Grafikler
+├── models/                         # Trained models (gitignored)
+│   └── advanced_system_latest.pkl  # Pre-trained model
 │
-└── docs/                               # Dökümanlar
-    ├── STRATEGY_IMPROVEMENTS.md        # Strateji geliştirmeleri
-    ├── ADVANCED_FEATURES.md            # Gelişmiş özellikler detayları
-    ├── LEVERAGE_COMMISSION_GUIDE.md    # Kaldıraç ve komisyon rehberi
-    └── ADVANCED_SYSTEM_GUIDE.md        # Level 3 sistem rehberi
+├── results/                        # Backtest results (gitignored)
+├── logs/                           # Log files (gitignored)
+└── data/                           # Runtime data (gitignored)
+```
+
+### Önemli Dosyalar
+
+**Backtest:**
+- `main.py` - Basit backtest
+- `run_walk_forward.py` - Walk-forward analysis
+- `config.yaml` - Backtest ayarları
+
+**Live Trading:**
+- `live_trading/live_trader.py` - Ana bot (lines 800+)
+- `live_trading/binance_connector.py` - API wrapper
+- `live_trading/strategy_executor.py` - Sinyal üretimi
+- `live_trading/config_live.yaml` - Live ayarları
+
+**Dashboards:**
+- `live_trading/dashboard.py` - Metrics dashboard
+- `live_trading/chart_dashboard.py` - Chart dashboard
+- `live_trading/dashboard_data.py` - Data management
+
+**Core System:**
+- `src/features/feature_engineering.py` - Feature pipeline
+- `src/advanced/integrated_system.py` - Complete strategy
+- `src/backtesting/backtester.py` - Backtest engine
+
+---
+
+## 📚 Nasıl Çalışır?
+
+### 1. Fractal Multi-Timeframe Analizi
+
+Her candle bir önceki mumla 4 şekilde ilişki kurar:
+
+```
+HHHL - Higher High Higher Low → 🐂 Boğa gücü
+HLLH - Lower High Lower Low   → 🐻 Ayı gücü
+INSIDE - Inside Bar            → 📦 Konsolidasyon
+OUTSIDE - Outside Bar          → 💥 Volatilite
+```
+
+11 farklı timeframe'de (3M → 15m) bu pattern'leri analiz eder.
+
+### 2. Machine Learning Ensemble
+
+3 güçlü model birleşimi:
+- **XGBoost** - Gradient boosting
+- **LightGBM** - Hızlı & verimli
+- **CatBoost** - Robust
+
+Her model tahmin yapar, optimal ağırlıklarla birleştirilir.
+
+### 3. HMM Regime Detection
+
+4 piyasa rejimi tespit edilir:
+
+| Rejim | Position Size | Leverage | Stop Loss |
+|-------|--------------|----------|-----------|
+| Bull Market | 1.5x | 1.2x | 0.8x (dar) |
+| Bear Market | 0.4x | 0.5x | 1.2x (geniş) |
+| Sideways | 0.8x | 1.0x | 1.0x |
+| High Vol | 0.25x | 0.6x | 1.5x (çok geniş) |
+
+Bot otomatik olarak rejime adapte olur.
+
+### 4. Advanced Position Management
+
+**Trailing Stop:**
+```
+Entry: $50,000, SL: $49,000
+Price → $52,000: SL → $50,960 (2% trail)
+Price → $54,000: SL → $52,920
+Price drops to $53,000: SL stays $52,920 ✅ Kar korundu!
+```
+
+**Partial Exit:**
+```
+Entry: $50,000, TP: $54,000
+Price → $52,000 (50% yol):
+  → 40% pozisyonu kapat (kar garantile)
+  → 60% kalan (büyük hareket için koş)
+```
+
+**Position Scaling:**
+```
+İlk: 0.02 BTC @ $50,000
+Price → $51,500, güçlü trend:
+  → Ekle: 0.01 BTC (50% of initial)
+Toplam: 0.03 BTC, trailing stop hepsini korur!
 ```
 
 ---
 
-## 🎯 Strateji Detayları
+## ⚠️ Risk Uyarıları
 
-### Sinyal Üretimi
+### 🚨 ÇOK ÖNEMLİ
 
-Sistem 4 katmanlı sinyal üretimi kullanır:
-
-#### 1. Fractal Score
-- 11 timeframe'de HHHL/HLLH pattern analizi
-- Her timeframe'in ağırlıklı ortalaması
-- Fractal momentum ve streak hesaplaması
-
-#### 2. Indicator Score
-- RSI (14, 21, 28 period)
-- MACD (12, 26, 9)
-- Bollinger Bands
-- Stochastic Oscillator
-- EMA alignment (9, 21, 50, 100, 200)
-- Volume indicators
-
-#### 3. Cross-Timeframe Alignment
-- Tüm timeframe'lerin aynı yönde olup olmadığını kontrol eder
-- Yüksek alignment = yüksek güven
-- Düşük alignment = karışık sinyaller
-
-#### 4. ML Ensemble Confidence
-- XGBoost, LightGBM, CatBoost tahminleri
-- Optimal ağırlıklarla birleştirme
-- Probability threshold filtering
-
-### BUY Sinyali Koşulları
-
-```python
-signal = 1  # BUY if:
-1. Fractal consensus is bullish (HHHL dominant)
-2. Indicators confirm (RSI not overbought, MACD bullish, etc.)
-3. ML ensemble confidence > 0.60 (60%+)
-4. Multiple timeframes aligned
-5. Current regime allows trading
-6. No extreme volatility
+```
+⚠️ Kripto trading SON DERECE RİSKLİDİR
+⚠️ Tüm sermayenizi kaybedebilirsiniz
+⚠️ Kaldıraç riski KATLAR (liquidation)
+⚠️ Geçmiş performans gelecek GARANTİSİ DEĞİLDİR
+⚠️ Bu yazılım EĞİTİM AMAÇLIDIR
+⚠️ Gerçek para ile kullanımda TÜM RİSK SİZE AİTTİR
 ```
 
-### SELL Sinyali
+### 📋 Kullanım Öncesi Checklist
 
-```python
-signal = -1  # SELL if:
-1. Position exists
-2. AND (
-   - Take profit hit
-   - Stop loss hit
-   - Trailing stop hit
-   - ML signals strong reversal
-   - Regime changes to bearish
-   )
+```
+✅ Backtesti çalıştırdım ve anladım
+✅ Testnet'te en az 1 hafta test ettim
+✅ Paper trading ile simülasyon yaptım
+✅ Stratejiyi ve riskleri anlıyorum
+✅ Sadece KAYBEDERSEM SORUN OLMAZ parası kullanıyorum
+✅ API güvenliği sağlandı (IP whitelist, 2FA)
+✅ Withdrawal izni KAPALI
+✅ İlk sermayeyi geri çıkardım
+✅ Stop loss her zaman aktif
+✅ Günlük/haftalık kontrol ediyorum
 ```
 
-### Risk Yönetimi
+### 💡 Trading İpuçları
 
-#### Position Sizing Formula
-
-```python
-# Base calculation
-position_pct = 0.08  # 8% of balance
-position_value = balance * position_pct * leverage
-
-# Apply regime multiplier
-regime_mult = get_regime_multiplier()  # Bull: 1.5x, Bear: 0.4x
-position_value *= regime_mult
-
-# Apply volatility adjustment
-vol_mult = get_volatility_multiplier()  # High vol: 0.6x, Low vol: 1.2x
-position_value *= vol_mult
-
-# Final position size
-quantity = position_value / current_price
 ```
-
-#### Stop Loss Calculation
-
-```python
-# ATR-based dynamic stop
-atr = calculate_atr(period=14)
-stop_distance = atr * 2.0  # 2x ATR
-stop_loss = entry_price - stop_distance
-
-# Apply regime adjustment
-regime_mult = get_regime_sl_mult()  # Bear: wider SL
-stop_loss *= regime_mult
-```
-
-#### Trailing Stop Logic
-
-```python
-if position.side == BUY:
-    if current_price > highest_price:
-        highest_price = current_price
-        new_stop = highest_price * (1 - trailing_pct)
-
-        if new_stop > stop_loss:
-            stop_loss = new_stop  # Move up only!
+✅ Küçük başla (1-3% position size)
+✅ Muhafazakar leverage (3x maks)
+✅ Düzenli kar realizasyonu
+✅ İlk sermayeni geri çek
+✅ FOMO yapma, sisteme güven
+✅ Disiplinli ol
+✅ Her gün kontrol et
+✅ Beklenmedik durumlar için hazır ol
 ```
 
 ---
 
-## 🚀 Gelişmiş Özellikler
+## 📝 SSS (Sık Sorulan Sorular)
 
-### 1. Trailing Stop Loss
+**Q: Testnet keyleri nerede alırım?**
+A: https://testnet.binancefuture.com/ → GitHub ile giriş → API Management
 
-**Nasıl çalışır:**
-- Fiyat yükselince stop loss otomatik yukarı çekilir
-- Asla aşağı inmez (sadece kar korur)
-- %2-2.5 trail distance (ayarlanabilir)
+**Q: Model ne kadar sürede eğitiliyor?**
+A: 10-30 dakika arası (CPU'ya bağlı). GPU ile 5-10 dakika.
 
-**Örnek senaryo:**
-```
-T0: Entry $50k, SL $49k
-T1: Price $52k → SL $50.96k (trail activated)
-T2: Price $54k → SL $52.92k
-T3: Price drops to $53.5k → Still in (SL $52.92k)
-T4: Price $52.9k → EXIT at SL ($2.92k profit locked!)
-```
+**Q: Her ne kadar kontrol ediyor?**
+A: Her 15 dakikada bir (candle close). Config'den değiştirilebilir.
 
-**Konfigürasyon:**
-```yaml
-backtesting:
-  enable_trailing_stop: true
-  trailing_stop_pct: 0.02  # 2% trail
-```
+**Q: Paper trading nedir?**
+A: Gerçek emir yerleştirmeden simülasyon. Test için ideal.
 
-### 2. Partial Exits
+**Q: Testnet parası nereden geliyor?**
+A: Binance testnet otomatik $100,000 sahte USDT veriyor.
 
-**Nasıl çalışır:**
-- İlk hedefte pozisyonun %40-50'sini kapat
-- Kalanı tam hedef veya trailing stop'a koş
-- Risk azaltır, kar garantiler
+**Q: Production'a geçmeden önce ne yapmalıyım?**
+A: En az 1 hafta testnet + paper trading. Sonuçları analiz et.
 
-**Örnek:**
-```
-Entry: $50k, TP: $54k
-Intermediate target: $52k (50% distance)
+**Q: Dashboard çalışmıyor?**
+A: `pkill -f streamlit` sonra yeniden başlat.
 
-Price hits $52k:
-→ Close 40% (+$800 secured)
-→ Move SL to breakeven on remaining 60%
-→ Let it run to $54k or trail out
-```
+**Q: Bot stop oluyor mu otomatik?**
+A: Circuit breaker aktifse evet (%15-20 kayıpta otomatik dur).
 
-**Konfigürasyon:**
-```yaml
-backtesting:
-  enable_partial_exit: true
-  partial_exit_percentage: 0.4  # Close 40% early
-```
+**Q: Telegram bildirim var mı?**
+A: Şu anda yok ama eklenebilir (.env'de TELEGRAM_BOT_TOKEN).
 
-### 3. Position Scaling (Pyramiding)
+**Q: Multi-coin destekliyor mu?**
+A: Şu anda sadece BTCUSDT. Multi-coin planlandı.
 
-**Nasıl çalışır:**
-- Kazanan pozisyonlara ekleme yap
-- Sadece kârda ve güçlü trendde scale-in
-- Maksimum 1-2 ekleme (risk kontrolü)
-- Her ekleme önceki pozisyonun %50'si
+**Q: Leverage'ı kaç yapmalıyım?**
+A: Yeni başlayan: 3x, Deneyimli: 5x, Uzman: 7x (dikkatli!)
 
-**Koşullar:**
-```python
-Allow scale-in if:
-1. Already in profit (>1 ATR)
-2. Trend strength > 0.5 (strong uptrend)
-3. Not scaled max times yet (max 2)
-4. No extreme volatility (vol < 5%)
-5. Not in drawdown (DD < 10%)
-```
-
-**Örnek:**
-```
-Position 1: 0.02 BTC @ $50k
-Price $51.5k, profit $30, strong trend:
-→ Add 0.01 BTC (50% of initial)
-
-Price $53k, profit $80, trend continues:
-→ Add 0.005 BTC (50% of second)
-
-Total: 0.035 BTC average entry $50.86k
-Trailing stop protects entire position
-```
-
-**Konfigürasyon:**
-```yaml
-backtesting:
-  enable_position_scaling: true
-  max_scale_ins: 2
-  scale_size_multiplier: 0.5
-```
-
-### 4. Crash Protection
-
-2020 COVID çöküşünde öğrenilenler:
-
-**Problem:**
-- 5x kaldıraçla 4 liquidation in 1 day (March 12, 2020)
-- Sürekli düşen pozisyonlara scale-in yaptı
-- Getiri 161% → 5.53% düştü
-
-**Çözüm:**
-
-```yaml
-backtesting:
-  # Kaldıraç kontrolü
-  leverage: 3  # 5x yerine 3x (daha güvenli)
-
-  # Geniş trailing stop
-  trailing_stop_pct: 0.025  # 2% yerine 2.5% (erken kesilmeyi önler)
-
-  # Konservatif scaling
-  max_scale_ins: 1  # 2 yerine 1 (daha az ekleme)
-
-  # Crash koruması
-  extreme_volatility_threshold: 0.05  # Vol > 5% → stop scaling
-  max_drawdown_for_scaling: 0.10      # DD > 10% → stop scaling
-```
-
-**Sonuç:**
-- 2020 getiri: 5.53% → 147.24% (+142%!)
-- Liquidation yok
-- Tüm yıllar pozitif
-
-### 5. Regime-Based Adaptation
-
-HMM ile 4 piyasa rejimi tespit edilir:
-
-```python
-Bull Market:
-  position_size_mult: 1.5x    # Agresif
-  leverage_mult: 1.2x
-  stop_loss_mult: 0.8x        # Dar SL
-  take_profit_mult: 1.5x      # Geniş TP
-
-Bear Market:
-  position_size_mult: 0.4x    # Defansif
-  leverage_mult: 0.5x
-  stop_loss_mult: 1.2x        # Geniş SL
-  take_profit_mult: 0.8x      # Dar TP
-
-High Volatility:
-  position_size_mult: 0.25x   # Çok düşük
-  leverage_mult: 0.6x
-  # Trading neredeyse durdurulur
-
-Sideways:
-  position_size_mult: 0.8x    # Orta
-  leverage_mult: 1.0x
-  # Normal trading
-```
-
-**Etkisi:**
-- Boğa piyasasında daha fazla kar
-- Ayı piyasasında sermaye koruması
-- Volatilitede risk azaltma
-- Otomatik adaptasyon
+**Q: Modeli ne sıklıkla eğitmeliyim?**
+A: Ayda bir veya piyasa değiştiğinde (yeni trend, regime change).
 
 ---
 
-## ⚙️ Konfigürasyon
-
-### Backtest Konfigürasyonu (`config.yaml`)
-
-#### Temel Ayarlar
-
-```yaml
-data:
-  file_path: "btc_15m_data_2018_to_2025.csv"
-  base_timeframe: "15m"
-
-timeframes:
-  all:
-    - "3M"    # Quarterly
-    - "1M"    # Monthly
-    - "1W"    # Weekly
-    - "1D"    # Daily
-    - "12h"
-    - "8h"
-    - "4h"
-    - "2h"
-    - "1h"
-    - "30m"
-    - "15m"   # Base timeframe
-```
-
-#### Backtest Parametreleri
-
-```yaml
-backtesting:
-  initial_capital: 10000
-
-  # Trading costs
-  commission: 0.001   # 0.1% (Binance maker/taker)
-  slippage: 0.0005    # 0.05% (market impact)
-
-  # Leverage
-  leverage: 3         # 3x (güvenli) | 5x (agresif) | 7x (riskli)
-
-  # Risk management
-  max_positions: 1
-  max_drawdown_percent: 20
-```
-
-#### Gelişmiş Özellikler
-
-```yaml
-backtesting:
-  # Trailing stop
-  enable_trailing_stop: true
-  trailing_stop_pct: 0.025    # 2.5% trail
-
-  # Partial exits
-  enable_partial_exit: true
-  partial_exit_percentage: 0.5  # Close 50% at intermediate target
-
-  # Position scaling
-  enable_position_scaling: true
-  max_scale_ins: 1            # Max 1 scale-in (güvenli)
-  scale_size_multiplier: 0.5  # Each scale-in is 50% of previous
-
-  # Crash protection
-  extreme_volatility_threshold: 0.05  # Stop scaling if vol > 5%
-  max_drawdown_for_scaling: 0.10      # Stop scaling if DD > 10%
-```
-
-### Live Trading Konfigürasyonu (`live_trading/config_live.yaml`)
-
-#### Smart-Aggressive Preset (5,000 TL Başlangıç)
-
-```yaml
-trading:
-  symbol: "BTCUSDT"
-  leverage: 5
-  position_size_pct: 0.08     # 8% per trade
-  check_interval_seconds: 60  # Check every 1 minute
-
-  # Stop loss & take profit
-  stop_loss_atr_mult: 2.0
-  take_profit_atr_mult: 4.0
-
-  # SAFETY FIRST!
-  testnet: true               # Start with testnet
-  paper_trading: true         # Start with paper trading
-
-advanced_features:
-  enable_trailing_stop: true
-  trailing_stop_pct: 0.02
-
-  enable_partial_exit: true
-  partial_exit_percentage: 0.4
-
-  enable_position_scaling: true
-  max_scale_ins: 2
-
-  # Crash protection
-  extreme_volatility_threshold: 0.05
-  max_drawdown_for_scaling: 0.10
-
-risk_management:
-  max_daily_loss_pct: 0.05    # Stop if lose 5% in a day
-  max_weekly_loss_pct: 0.15   # Stop if lose 15% in a week
-
-  # Circuit breaker
-  enable_circuit_breaker: true
-  circuit_breaker_loss_pct: 0.20  # Emergency stop at 20% loss
-```
-
-#### Muhafazakar Preset
-
-```yaml
-trading:
-  leverage: 3
-  position_size_pct: 0.05
-
-advanced_features:
-  trailing_stop_pct: 0.03     # Wider trail
-  partial_exit_percentage: 0.7  # Take 70% early
-  enable_position_scaling: false  # No pyramiding
-```
-
-#### Hyper-Aggressive Preset (Riskli!)
-
-```yaml
-trading:
-  leverage: 7
-  position_size_pct: 0.12
-
-advanced_features:
-  trailing_stop_pct: 0.015    # Tight trail
-  partial_exit_percentage: 0.3  # Keep 70% running
-  max_scale_ins: 3            # Up to 3 scale-ins
-```
-
----
-
-## 📊 Backtest Sonuçları
-
-### Walk-Forward Analysis (2019-2025)
-
-**Konfigürasyon:** 3x leverage, crash protection enabled
-
-```
-╔════════════════════════════════════════════════════════════════╗
-║                   WALK-FORWARD ANALYSIS RESULTS                 ║
-╚════════════════════════════════════════════════════════════════╝
-
-ANNUAL PERFORMANCE:
-┌──────┬─────────┬──────────────┬────────┬───────────┬──────┐
-│ Year │ Return  │ Max Drawdown │ Sharpe │ Win Rate  │ Trades│
-├──────┼─────────┼──────────────┼────────┼───────────┼──────┤
-│ 2019 │ +109.2% │     9.13%    │  2.45  │   82.3%   │  145 │
-│ 2020 │ +147.8% │     8.88%    │  3.12  │   83.1%   │  167 │ ⭐ COVID
-│ 2021 │ +134.5% │     5.68%    │  4.21  │   84.2%   │  189 │
-│ 2022 │ +108.3% │     8.76%    │  2.89  │   81.5%   │  156 │
-│ 2023 │  +1.42% │    14.09%    │  0.23  │   79.8%   │  134 │ ⚠️ Sideways
-│ 2024 │ +137.1% │     6.89%    │  3.56  │   82.7%   │  178 │
-│ 2025 │ +44.2%  │     6.33%    │  2.11  │   81.9%   │   89 │
-└──────┴─────────┴──────────────┴────────┴───────────┴──────┘
-
-TOTAL TEST SET (Out-of-Sample):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total Return:        +175.2%
-CAGR:                +28.3%
-Max Drawdown:        -14.09% (2023)
-Average Sharpe:      2.65
-Average Win Rate:    82.1%
-Total Trades:        1,058
-Profit Factor:       2.34
-```
-
-### Feature Impact Analysis
-
-| Feature Set | Test Return | Max DD | Improvement |
-|------------|-------------|--------|-------------|
-| Baseline (no advanced features) | 188% | 18.2% | - |
-| + Trailing Stop | 267% | 14.5% | +42% |
-| + Partial Exits | 312% | 13.1% | +66% |
-| + Position Scaling | 401% | 15.8% | +113% |
-| + Crash Protection | 175% | 14.1% | -7% return but +safety |
-
-**Insight:** Position scaling büyük getiri sağlar ama crash protection ile dengeli kullanılmalı.
-
-### 2020 COVID Crash Analysis
-
-**Problem:** March 12, 2020 - Bitcoin $8,000 → $3,800 (-52% in 1 day)
-
-**Without Crash Protection (5x leverage):**
-```
-March 12, 2020:
-08:00 - Liquidation #1 (short position)
-12:00 - Liquidation #2 (re-entered long)
-16:00 - Liquidation #3 (scaled into falling knife)
-20:00 - Liquidation #4 (desperate long)
-
-Result: -94.5% capital destroyed
-Year 2020: +5.53% total (barely survived)
-```
-
-**With Crash Protection (3x leverage):**
-```
-March 12, 2020:
-08:00 - Volatility spike detected (vol = 8.2%)
-08:01 - Scaling disabled, tight risk management
-10:00 - Position stopped out (-3.5%)
-12:00 - No re-entry (volatility still high)
-16:00 - Market stabilizes, system resumes
-
-Result: -3.5% on crash day (survived!)
-Year 2020: +147.2% total (thrived!)
-```
-
-**Conclusion:** Crash protection prevents catastrophic failure. Küçük getiri kaybı, büyük risk azaltımı.
-
----
-
-## 📚 Dökümanlar
-
-### Ana Dökümanlar
-
-1. **README.md** (bu dosya!)
-   - Genel bakış ve tüm bilgilere ulaşım
-   - Hızlı başlangıç
-   - Live trading özeti
-
-2. **[STRATEGY_IMPROVEMENTS.md](STRATEGY_IMPROVEMENTS.md)**
-   - Regime-based position sizing detayları
-   - Dynamic leverage implementation
-   - Trend filter logic
-   - Performans karşılaştırmaları
-
-3. **[ADVANCED_FEATURES.md](ADVANCED_FEATURES.md)**
-   - Trailing stop loss detaylı açıklama
-   - Partial exits örnekleri
-   - Position scaling stratejisi
-   - Risk/reward analizi
-
-4. **[LEVERAGE_COMMISSION_GUIDE.md](LEVERAGE_COMMISSION_GUIDE.md)**
-   - Kaldıraç nasıl çalışır
-   - Liquidation hesaplama
-   - Komisyon etkisi
-   - Optimal kaldıraç seviyeleri
-
-### Live Trading Dökümanları
-
-5. **[live_trading/README.md](live_trading/README.md)**
-   - Kapsamlı İngilizce live trading rehberi
-   - 900+ satır detaylı döküman
-   - Tüm özellikler, kurulum, örnekler
-   - Güvenlik ve risk yönetimi
-
-6. **[live_trading/BASLATMA_KILAVUZU.md](live_trading/BASLATMA_KILAVUZU.md)**
-   - Türkçe hızlı başlangıç rehberi
-   - 5 dakikada başlatma
-   - Adım adım kurulum
-   - Konfigürasyon örnekleri
-
-### Gelişmiş Sistem Dökümanları
-
-7. **[ADVANCED_SYSTEM_GUIDE.md](ADVANCED_SYSTEM_GUIDE.md)**
-   - Level 3 sistem detayları
-   - LSTM/Transformer modelleri
-   - Reinforcement Learning (PPO)
-   - Kelly Criterion
-   - Attention mechanisms
-
-### Kod Dosyaları
-
-Önemli implementasyon dosyaları:
-
-- **`src/backtesting/backtester.py`**
-  - Trailing stop: lines 134-175
-  - Partial exits: lines 312-345
-  - Position scaling: lines 470-539
-  - Crash protection: lines 495-510
-
-- **`src/advanced/integrated_system.py`**
-  - Regime detection integration: lines 85-120
-  - Position sizing with regime: lines 198-236
-  - Signal generation: lines 150-195
-
-- **`live_trading/live_trader.py`**
-  - Main bot loop: lines 148-196
-  - Position opening: lines 198-271
-  - Position management: lines 273-340
-
----
-
-## 🎓 Kullanım Örnekleri
-
-### Örnek 1: Basit Backtest
+## 🚀 Başla!
 
 ```bash
-# En basit kullanım
-python main.py
+# 1. Kurulum
+git clone <repo-url> && cd test && pip install -r requirements.txt
 
-# Çıktı:
-# - results/equity_curve.csv
-# - models/xgboost_model.pkl
-# - Console'da detaylı rapor
+# 2. Model eğit
+./train_offline.sh
+
+# 3. Testnet keyleri al
+# https://testnet.binancefuture.com/
+
+# 4. .env oluştur
+cd live_trading && cp .env.example .env && nano .env
+
+# 5. Botu başlat
+./run_live.sh
+
+# 6. Dashboard'ları aç
+./start_dashboard.sh          # Terminal 2
+./start_chart_dashboard.sh    # Terminal 3
+
+# 7. Tarayıcıda aç
+# http://localhost:8501 (Metrics)
+# http://localhost:8502 (Charts)
 ```
 
-### Örnek 2: Walk-Forward Analizi
-
-```bash
-# En gerçekçi test (time-series CV)
-python run_walk_forward.py
-
-# Her yıl için:
-# - Train on previous data
-# - Test on current year
-# - Report annual performance
-```
-
-### Örnek 3: Custom Konfigürasyon
-
-```bash
-# Kendi config dosyanı kullan
-python main.py --config my_config.yaml
-
-# Örnek my_config.yaml:
-# backtesting:
-#   leverage: 10
-#   enable_trailing_stop: false
-#   # Dikkat: Yüksek risk!
-```
-
-### Örnek 4: Live Trading (Testnet)
-
-```bash
-cd live_trading
-
-# .env dosyasını oluştur (testnet keys)
-cat > .env << EOF
-BINANCE_API_KEY=your_testnet_key
-BINANCE_API_SECRET=your_testnet_secret
-EOF
-
-# config_live.yaml'da testnet: true olduğunu kontrol et
-
-# Botu başlat
-python live_trader.py
-
-# Çıktı:
-# 🤖 BITCOIN LIVE TRADING BOT INITIALIZED
-# Symbol: BTCUSDT
-# Leverage: 5x
-# Testnet: ✅ Yes
-# Paper Trading: ✅ Yes
-#
-# 🔍 Checking market at 2025-01-15 14:32:00
-# 💵 Current price: 50234.50 USDT
-# 📊 Signal: 1 | Confidence: 0.78 | Regime: Bull Market
-# ...
-```
-
-### Örnek 5: Gerçek Para (Dikkatli!)
-
-```bash
-# İlk önce testnet'te en az 1 hafta test et!
-# Sonra küçük sermaye ile başla
-
-cd live_trading
-
-# .env dosyasını GERÇEK API keys ile güncelle
-
-# config_live.yaml'ı güncelle:
-# testnet: false
-# paper_trading: false
-# leverage: 3          # İlk başta düşük kaldıraç
-# position_size_pct: 0.03  # İlk başta küçük pozisyon
-
-# Botu başlat
-python live_trader.py
-
-# İlk günler dikkatle izle!
-# Performans iyi ise yavaş yavaş artır
-```
+**✅ Hazırsın! İyi kazançlar! 💰**
 
 ---
 
-## 🚨 Önemli Uyarılar
-
-### ⚠️ Risk Uyarıları
-
-1. **Kripto trading son derece risklidir**
-   - Tüm sermayenizi kaybedebilirsiniz
-   - Kaldıraç riski katlar
-   - Geçmiş performans gelecek getiriyi garanti etmez
-
-2. **Kaldıraç tehlikelidir**
-   - 3x = Makul risk
-   - 5x = Yüksek risk
-   - 7x+ = Çok yüksek risk (liquidation riski)
-   - Kaldıraç kullanmadan önce nasıl çalıştığını öğren
-
-3. **İlk başta küçük başla**
-   - Testnet ile başla (sahte para)
-   - Paper trading ile başla (simülasyon)
-   - Sonra küçük gerçek pozisyonlar
-   - Yavaş yavaş büyüt
-
-4. **Live trading dikkat gerektirir**
-   - "Kur unut" yapma
-   - Günlük kontrol et
-   - Anormal durumları hemen fark et
-   - Circuit breaker ayarla
-
-5. **Sadece kaybedebileceğin kadar yatır**
-   - Mortgage paranı kullanma
-   - Kredi kartından borçlanma
-   - Acil fonu riske atma
-   - Sadece risk sermayesi kullan
-
-### 🛡️ Güvenlik Önlemleri
-
-1. **API Key Güvenliği**
-   - Asla kimseyle paylaşma
-   - Withdrawal iznini asla açma
-   - IP whitelist kullan
-   - 2FA aç
-   - .env dosyasını git'e gönderme
-
-2. **Sistem Güvenliği**
-   - Güvenli sunucu kullan
-   - Firewall aktif
-   - SSH key authentication
-   - Regular security updates
-
-3. **Veri Güvenliği**
-   - API keys'i şifreli backup
-   - Trade history'yi kaydet
-   - Regular backups
-   - Disaster recovery planı
-
-### 📖 Legal Uyarı
-
-```
-Bu yazılım sadece eğitim amaçlıdır.
-Gerçek para ile kullanmadan önce:
-- Riskleri tam olarak anlayın
-- Finansal danışmana danışın
-- Kendi araştırmanızı yapın
-- Sorumluluk size aittir
-
-Yazılımı kullanarak tüm riski kabul etmiş olursunuz.
-Yazılım geliştiricisi hiçbir kayıptan sorumlu değildir.
-
-THIS SOFTWARE IS FOR EDUCATIONAL PURPOSES ONLY.
-NO WARRANTY. USE AT YOUR OWN RISK.
-```
-
----
-
-## 🎯 Başarı İçin İpuçları
-
-### 1. Sabırlı Ol
-- Trading bir maraton, sprint değil
-- Hızlı zengin olma beklentisi yok
-- Tutarlı, sürdürülebilir getiriler hedefle
-- Compound interest gücünü kullan
-
-### 2. Disiplinli Ol
-- Kurallara uy
-- Emotional trading yapma
-- FOMO'dan kaçın
-- Sisteme güven
-
-### 3. Risk Yönet
-- Her zaman stop loss kullan
-- Position size'ı kontrol et
-- Over-leverage yapma
-- Diversify et (sadece BTC değil)
-
-### 4. Öğrenmeye Devam Et
-- Piyasayı takip et
-- Stratejini sürekli iyileştir
-- Yeni teknikleri öğren
-- Trading journal tut
-
-### 5. Gerçekçi Ol
-- Backtest ≠ Live trading
-- Slippage olur
-- Emotion devreye girer
-- Unexpected events olur
-
-### 6. Düzenli Kar Çek
-- İlk sermayeni geri çek
-- Karların bir kısmını withdraw et
-- "Paper profit" gerçek değildir
-- Realize et!
-
----
-
-## 🤝 Katkıda Bulunma
-
-Bu proje açık kaynak bir araştırma projesidir. Katkılarınızı bekliyoruz!
-
-### Katkı Yapma Yolları
-
-1. **Bug Reports**
-   - GitHub Issues kullanın
-   - Detaylı açıklama yapın
-   - Reproduce steps ekleyin
-
-2. **Feature Requests**
-   - Yeni özellik önerileri
-   - Kullanım senaryoları
-   - Performans iyileştirmeleri
-
-3. **Code Contributions**
-   - Fork the repo
-   - Create feature branch
-   - Submit pull request
-   - Follow code style
-
-4. **Documentation**
-   - Typo düzeltmeleri
-   - Daha iyi açıklamalar
-   - Yeni örnekler
-   - Çeviriler
-
----
-
-## 📞 Destek ve İletişim
-
-### Kaynaklar
-
-- **GitHub Issues:** Bug reports ve feature requests
-- **Binance API Docs:** https://binance-docs.github.io/apidocs/futures/en/
-- **Testnet:** https://testnet.binancefuture.com/
-
-### Hata Giderme
-
-1. **Backtest sorunları:** [STRATEGY_IMPROVEMENTS.md](STRATEGY_IMPROVEMENTS.md)
-2. **Live trading sorunları:** [live_trading/README.md](live_trading/README.md)
-3. **API sorunları:** [live_trading/test_connection.py](live_trading/test_connection.py)
-4. **Genel sorular:** GitHub Issues
-
----
-
-## 📝 Versiyon Geçmişi
-
-### v4.0 - Live Trading (Current)
-- ✅ Binance Futures API entegrasyonu
-- ✅ Testnet ve paper trading desteği
-- ✅ Otomatik sinyal kontrolü
-- ✅ Kapsamlı live trading dökümanları
-- ✅ Türkçe ve İngilizce rehberler
-
-### v3.0 - Advanced Features
-- ✅ Trailing stop loss implementation
-- ✅ Partial exits (scale out)
-- ✅ Position scaling (pyramiding)
-- ✅ Crash protection
-- ✅ Performance: 188% → 401% improvement
-
-### v2.0 - Strategy Improvements
-- ✅ Regime-based position sizing
-- ✅ Dynamic leverage
-- ✅ Trend filters
-- ✅ Walk-forward analysis
-
-### v1.0 - Basic System
-- ✅ Fractal multi-timeframe analysis
-- ✅ XGBoost ML model
-- ✅ Genetic algorithm optimization
-- ✅ Basic backtesting engine
-
----
-
-## 🏆 Başarı Hikayeleri
-
-### Backtest Başarıları
-
-**2020 COVID Crash Survival:**
-- Problem: 4 liquidation in 1 day, 161% → 5.53%
-- Çözüm: Crash protection implementation
-- Sonuç: 5.53% → 147.24% (+142%!)
-
-**7 Yıl Tüm Pozitif:**
-- 2019-2025 arası her yıl pozitif
-- Ortalama yıllık: ~100%
-- Max drawdown: 14% (kontrollü)
-- Sharpe: 2.65 (mükemmel)
-
-**Feature Performance:**
-- Baseline: 188% test return
-- All features: 401% test return
-- Improvement: 2.1x (113% boost!)
-
----
-
-## 🎁 Bonus Özellikler
-
-### 1. Walk-Forward Analysis Script
-
-```bash
-python run_walk_forward.py
-```
-
-Her yıl için ayrı train/test döngüsü çalıştırır.
-
-### 2. Quick Test Script
-
-```bash
-python test_quick.py
-```
-
-Sistemin çalışıp çalışmadığını hızlıca kontrol eder.
-
-### 3. Connection Test Script
-
-```bash
-cd live_trading
-python test_connection.py
-```
-
-Binance API bağlantısını test eder.
-
-### 4. Auto Setup Script
-
-```bash
-cd live_trading
-./setup.sh
-```
-
-Tüm kurulumu otomatik yapar.
-
----
-
-## 📈 Gelecek Planları
-
-### v5.0 Roadmap
-
-- [ ] Multi-symbol support (ETH, BNB, etc.)
-- [ ] Telegram bot integration (alerts)
-- [ ] Web dashboard (monitor live trading)
-- [ ] Advanced RL models (A3C, SAC)
-- [ ] Auto-optimization (self-tuning parameters)
-- [ ] Portfolio management (multiple coins)
-- [ ] Sentiment analysis integration
-- [ ] On-chain metrics integration
-
-### Community Requests
-
-- [ ] Bybit exchange support
-- [ ] Spot trading support
-- [ ] Options trading
-- [ ] Grid trading mode
-- [ ] DCA strategy mode
-
----
-
-## 🌟 Teşekkürler
-
-Bu proje aşağıdaki teknolojileri kullanmaktadır:
-
-- **Python** - Core language
-- **XGBoost, LightGBM, CatBoost** - ML models
-- **Pandas, NumPy** - Data processing
-- **python-binance** - Binance API
-- **PyYAML** - Configuration
-- **colorlog** - Logging
-
-Ve açık kaynak topluluğuna teşekkürler! 🙏
+## 📞 Destek
+
+- **GitHub Issues** - Bug reports, feature requests
+- **Binance API Docs** - https://binance-docs.github.io/apidocs/futures/en/
+- **Testnet** - https://testnet.binancefuture.com/
 
 ---
 
 ## 📜 Lisans
 
-MIT License
+MIT License - Eğitim amaçlıdır. Gerçek para ile kullanımda tüm sorumluluk size aittir.
 
 ```
-Copyright (c) 2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+USE AT YOUR OWN RISK.
 ```
 
 ---
 
-## 🚀 Hemen Başla!
-
-```bash
-# 1. Backtest yap
-python run_walk_forward.py
-
-# 2. Live trading'e hazırlan
-cd live_trading
-./setup.sh
-
-# 3. API keylerini ekle
-nano .env
-
-# 4. Testnet'te test et
-python live_trader.py
-
-# 5. Gerçek para (dikkatli!)
-# config_live.yaml: testnet: false
-# Küçük başla, yavaş büyüt!
-```
-
----
-
-<div align="center">
-
-## ⭐ Star This Repo!
-
-Eğer bu proje işine yaradıysa, star vermeyi unutma! ⭐
-
-**Bol kazançlar! 💰🚀**
-
-</div>
-
----
-
-**Son Güncelleme:** 2025-01-15
-**Versiyon:** 4.0 (Live Trading)
+**Son Güncelleme:** 2025-11-15
+**Versiyon:** 4.0
 **Durum:** Production Ready ✅
