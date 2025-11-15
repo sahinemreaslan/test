@@ -67,6 +67,9 @@ class LiveTradingBot:
         self.trades_count = 0
         self.start_balance = 0
 
+        # Paper trading position tracking
+        self.paper_position = None  # Stores simulated position for paper trading
+
         logger.info("="*70)
         logger.info("🤖 BITCOIN LIVE TRADING BOT INITIALIZED")
         logger.info("="*70)
@@ -196,11 +199,26 @@ class LiveTradingBot:
 
             # Get current price and position
             current_price = self.binance.get_current_price(self.symbol)
-            current_position = self.binance.get_position_info(self.symbol)
+
+            # Get position (paper trading or real)
+            if self.paper_trading:
+                current_position = self.paper_position
+            else:
+                current_position = self.binance.get_position_info(self.symbol)
 
             logger.info(f"💵 Current price: {current_price:.2f} USDT")
 
             if current_position:
+                # Calculate unrealized PnL for paper trading
+                if self.paper_trading and current_position:
+                    entry_price = current_position['entry_price']
+                    quantity = current_position['quantity']
+                    if current_position['side'] == 'LONG':
+                        unrealized_pnl = (current_price - entry_price) * quantity * self.leverage
+                    else:
+                        unrealized_pnl = (entry_price - current_price) * quantity * self.leverage
+                    current_position['unrealized_pnl'] = unrealized_pnl
+
                 logger.info(f"📍 Current position: {current_position['side']} "
                           f"{current_position['quantity']:.6f} BTC @ {current_position['entry_price']:.2f}")
                 logger.info(f"   Unrealized PnL: {current_position['unrealized_pnl']:.2f} USDT")
@@ -300,7 +318,20 @@ class LiveTradingBot:
             self.trades_count += 1
 
             if self.paper_trading:
+                # Store paper trading position
+                self.paper_position = {
+                    'symbol': self.symbol,
+                    'side': 'LONG',
+                    'quantity': quantity,
+                    'entry_price': current_price,
+                    'unrealized_pnl': 0.0,
+                    'leverage': self.leverage,
+                    'stop_loss': stop_loss,
+                    'take_profit': take_profit,
+                    'opened_at': datetime.now().isoformat()
+                }
                 logger.info("\n📝 PAPER TRADING - No actual order placed")
+                logger.info(f"✅ Paper position opened: {quantity:.6f} BTC @ ${current_price:.2f}")
                 return
 
             # Place market buy order
@@ -375,7 +406,10 @@ class LiveTradingBot:
             })
 
             if self.paper_trading:
+                # Clear paper trading position
+                self.paper_position = None
                 logger.info("\n📝 PAPER TRADING - No actual close")
+                logger.info(f"✅ Paper position closed: PnL ${pnl:.2f}")
                 return
 
             success = self.binance.close_position(self.symbol)

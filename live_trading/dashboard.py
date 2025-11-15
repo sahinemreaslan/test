@@ -142,33 +142,54 @@ with col4:
     confidence = status.get('last_confidence', 0)
     st.metric("Last Signal", f"{signal_emoji} {last_signal}", f"{confidence:.0%} confidence")
 
-# ==================== Performance Metrics ====================
+# ==================== Balance & Performance ====================
 
 st.markdown("---")
-st.header("📈 Performance Metrics")
+st.header("💰 Balance")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
+    start_balance = performance.get('start_balance', 0)
+    st.metric("Start Balance", f"${start_balance:,.2f}")
+
+with col2:
+    current_balance = performance.get('current_balance', 0)
+    st.metric("Current Balance", f"${current_balance:,.2f}")
+
+with col3:
     total_pnl = performance.get('total_pnl', 0)
     pnl_color = "normal" if total_pnl >= 0 else "inverse"
     st.metric("Total PnL", f"${total_pnl:,.2f}", delta=None, delta_color=pnl_color)
 
-with col2:
+with col4:
+    if start_balance > 0:
+        roi = (total_pnl / start_balance) * 100
+        roi_color = "normal" if roi >= 0 else "inverse"
+        st.metric("ROI", f"{roi:+.2f}%", delta_color=roi_color)
+    else:
+        st.metric("ROI", "N/A")
+
+st.markdown("---")
+st.header("📈 Performance Metrics")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
     win_rate = performance.get('win_rate', 0)
     st.metric("Win Rate", f"{win_rate:.1f}%")
 
-with col3:
+with col2:
     total_trades = performance.get('total_trades', 0)
     winning = performance.get('winning_trades', 0)
     losing = performance.get('losing_trades', 0)
     st.metric("Total Trades", f"{total_trades}", f"✅ {winning} | ❌ {losing}")
 
-with col4:
+with col3:
     sharpe = performance.get('sharpe_ratio', 0)
     st.metric("Sharpe Ratio", f"{sharpe:.2f}")
 
-with col5:
+with col4:
     max_dd = performance.get('max_drawdown', 0)
     st.metric("Max Drawdown", f"${max_dd:,.2f}")
 
