@@ -281,6 +281,8 @@ Script:
 
 ### Bot Nasıl Çalışır?
 
+**⚠️ Önemli:** Şu anda bot **sadece LONG pozisyon** açıyor. SHORT desteği yok.
+
 ```
 Her 15 dakikada bir (candle close):
   1. Market data çek (500 candle)
@@ -289,16 +291,23 @@ Her 15 dakikada bir (candle close):
   4. ML model sinyal üret
   5. Regime tespit et (Bull/Bear/Sideways/HighVol)
 
+  Sinyal Mantığı:
+  - Signal = 1 (BUY): LONG pozisyon aç (eğer yoksa)
+  - Signal = 0 (HOLD): Hiçbir şey yapma
+  - Signal = -1 (SELL): Mevcut pozisyonu kapat (SHORT açmıyor!)
+
   Eğer sinyal BUY ve pozisyon yok:
-    → Pozisyon aç
+    → LONG pozisyon aç
     → Stop loss ve take profit koy
 
   Eğer pozisyonda:
     → Trailing stop kontrol et
     → Partial exit kontrol et
     → Scaling fırsatı kontrol et
-    → Exit sinyali kontrol et
+    → Exit sinyali kontrol et (signal = -1)
 ```
+
+**Not:** SHORT trading eklemek isterseniz, kodda `_open_short_position()` fonksiyonu eklenmeli.
 
 ---
 
