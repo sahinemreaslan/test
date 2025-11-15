@@ -15,8 +15,9 @@ trading:
   max_position_pct: 0.25         # Maximum 25% in single position
 
   # How often to check for signals (in seconds)
-  # 60 = check every 1 minute (15m candles)
-  check_interval_seconds: 60
+  # 900 = check every 15 minutes (matches 15m candle close)
+  # This ensures we only generate signals on completed candles
+  check_interval_seconds: 900
 
   # Stop loss and take profit (ATR multipliers)
   stop_loss_atr_mult: 2.0        # 2x ATR for stop loss
