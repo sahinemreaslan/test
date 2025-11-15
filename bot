@@ -150,7 +150,7 @@ print("📊 Data yükleniyor...")
 with open('config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
-loader = DataLoader(config)
+loader = DataLoader(config['data']['file_path'])
 data = loader.load_data()
 print(f"✅ {len(data)} candle yüklendi")
 
