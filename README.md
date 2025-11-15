@@ -158,6 +158,24 @@ BINANCE_API_SECRET=your_production_secret_here
 
 ## 🤖 Live Trading
 
+### Testnet vs Production - Farklar
+
+| Özellik | Testnet (Önerilen) | Production (Gerçek Para) |
+|---------|-------------------|--------------------------|
+| **Para** | 🧪 Sahte USDT ($100k) | 💰 Gerçek USDT |
+| **Risk** | ✅ Sıfır risk | ⚠️ Sermaye kaybı riski |
+| **API Keys** | https://testnet.binancefuture.com/ | https://www.binance.com/ |
+| **Binance Server** | Testnet sunucusu | Production sunucusu |
+| **Config** | `config_live.yaml` (testnet: true) | `config_production.yaml` (testnet: false) |
+| **ENV File** | `.env` | `.env.production` |
+| **Başlatma** | `./bot testnet` | `./bot production` |
+| **Amaç** | Test, öğrenme, deneme | Gerçek kazanç |
+| **Öneri** | ✅ İlk 1-2 hafta burada | ⚠️ Sadece test sonrası |
+| **IP Whitelist** | Opsiyonel | ✅ Zorunlu |
+| **2FA** | Opsiyonel | ✅ Zorunlu |
+| **Withdrawal** | Zaten sahte para | ❌ Mutlaka KAPALI |
+| **İlk Sermaye** | Sınırsız (test) | 100-500 USDT (küçük başla) |
+
 ### Testnet ile Başlama (Önerilen)
 
 **1. Config Kontrol Et**
