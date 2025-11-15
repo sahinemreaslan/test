@@ -143,7 +143,7 @@ import sys
 import yaml
 import pickle
 from src.data.data_loader import DataLoader
-from src.features.feature_engineering import FeatureEngineering
+from src.features.feature_engineering import FeatureEngineer
 from src.advanced.integrated_system import IntegratedTradingSystem
 
 print("📊 Data yükleniyor...")
@@ -155,7 +155,7 @@ data = loader.load_data()
 print(f"✅ {len(data)} candle yüklendi")
 
 print("🔧 Feature engineering...")
-fe = FeatureEngineering(config)
+fe = FeatureEngineer(config)
 multi_tf_data = fe.create_multi_timeframe_features(data)
 features, target = fe.prepare_ml_dataset(multi_tf_data)
 print(f"✅ {len(features.columns)} feature oluşturuldu")
