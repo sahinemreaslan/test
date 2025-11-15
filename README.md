@@ -405,6 +405,8 @@ Her 15 dakikada bir (candle close):
 
 ## 🧪 Backtest
 
+**⚠️ Önemli:** Backtest de **sadece LONG pozisyon** kullanıyor. SHORT yok.
+
 ### Hızlı Backtest
 
 ```bash
@@ -413,6 +415,9 @@ python test_quick.py
 
 # Tam backtest
 python main.py
+
+# Walk-forward analysis (önerilen - en gerçekçi)
+./bot backtest
 ```
 
 ### Walk-Forward Analysis (Önerilen)
@@ -420,6 +425,8 @@ python main.py
 ```bash
 # Her yıl ayrı train/test
 python run_walk_forward.py
+# veya
+./bot backtest
 ```
 
 **Çıktı:**
