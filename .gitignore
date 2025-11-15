@@ -26,6 +26,11 @@ ENV/
 env/
 .venv
 
+# Environment variables (API keys, secrets)
+.env
+.env.*
+*.env
+
 # IDE
 .vscode/
 .idea/
@@ -41,6 +46,8 @@ models/
 results/
 logs/
 *.log
+live_trading/data/
+live_trading/live_results/
 
 # ML Training artifacts
 catboost_info/
