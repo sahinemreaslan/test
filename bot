@@ -144,7 +144,7 @@ import yaml
 import pickle
 from src.data.data_loader import DataLoader
 from src.features.feature_engineering import FeatureEngineer
-from src.advanced.integrated_system import IntegratedTradingSystem
+from src.advanced.integrated_system import AdvancedTradingSystem
 
 print("📊 Data yükleniyor...")
 with open('config.yaml', 'r') as f:
@@ -161,7 +161,7 @@ features, target = fe.prepare_ml_dataset(multi_tf_data)
 print(f"✅ {len(features.columns)} feature oluşturuldu")
 
 print("🤖 Model eğitiliyor...")
-system = IntegratedTradingSystem(config)
+system = AdvancedTradingSystem(config)
 system.train(features, target)
 print("✅ Model eğitildi")
 
