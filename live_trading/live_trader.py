@@ -394,28 +394,78 @@ class LiveTradingBot:
         # This can be enhanced with trailing stop logic
         pass
 
+    def _wait_for_next_candle_close(self, timeframe_minutes: int = 15):
+        """Wait until the next candle closes
+
+        For 15m candles, waits until next 00, 15, 30, or 45 minute mark.
+        This ensures we only check on completed candles.
+
+        Args:
+            timeframe_minutes: Timeframe in minutes (default: 15)
+        """
+        now = datetime.now()
+        current_minute = now.minute
+        current_second = now.second
+
+        # Calculate minutes until next candle close
+        minutes_into_candle = current_minute % timeframe_minutes
+        minutes_until_close = timeframe_minutes - minutes_into_candle
+
+        # If we're exactly at candle close (within 5 seconds), wait for next one
+        if minutes_until_close == timeframe_minutes and current_second < 5:
+            minutes_until_close = timeframe_minutes
+
+        # Calculate total seconds to wait
+        seconds_until_close = (minutes_until_close * 60) - current_second
+
+        # Calculate next candle close time
+        next_close = now + timedelta(seconds=seconds_until_close)
+
+        logger.info(f"\n⏰ Syncing with {timeframe_minutes}m candle close...")
+        logger.info(f"   Current time: {now.strftime('%H:%M:%S')}")
+        logger.info(f"   Next candle closes at: {next_close.strftime('%H:%M:%S')}")
+        logger.info(f"   Waiting {seconds_until_close} seconds...")
+
+        # Wait until candle close
+        time.sleep(seconds_until_close)
+
+        logger.info(f"✅ Candle closed! Starting checks...")
+
     def run(self):
         """Main run loop"""
         if not self.initialize():
             logger.error("❌ Initialization failed, exiting...")
             return
 
+        # Get timeframe from config
+        timeframe_str = self.config.get('data', {}).get('base_timeframe', '15m')
+        timeframe_minutes = int(timeframe_str.replace('m', ''))
+
         logger.info("\n" + "="*70)
         logger.info("🚀 STARTING LIVE TRADING BOT")
         logger.info("="*70)
-        logger.info(f"Check interval: Every {self.check_interval} seconds")
+        logger.info(f"Timeframe: {timeframe_str} ({timeframe_minutes} minutes)")
+        logger.info(f"Check interval: Every {self.check_interval} seconds ({self.check_interval // 60} minutes)")
+        logger.info(f"Strategy: Check on candle close (synced to {timeframe_str} candles)")
         logger.info(f"Press Ctrl+C to stop")
         logger.info("="*70)
 
         self.running = True
 
         try:
+            # Sync with next candle close before first check
+            self._wait_for_next_candle_close(timeframe_minutes)
+
             while self.running:
+                # Check and trade on candle close
                 self.check_and_trade()
 
-                logger.info(f"\n💤 Sleeping for {self.check_interval} seconds...")
-                logger.info(f"Next check at: {(datetime.now() + timedelta(seconds=self.check_interval)).strftime('%H:%M:%S')}")
+                # Calculate next candle close time
+                next_check = datetime.now() + timedelta(seconds=self.check_interval)
+                logger.info(f"\n💤 Sleeping until next candle close...")
+                logger.info(f"Next check at: {next_check.strftime('%H:%M:%S')} (in {self.check_interval // 60} minutes)")
 
+                # Sleep for the check interval
                 time.sleep(self.check_interval)
 
         except KeyboardInterrupt:
