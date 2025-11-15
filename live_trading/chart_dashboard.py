@@ -566,7 +566,7 @@ if show_macd:
     fig.update_yaxes(title_text="MACD", row=row_num, col=1)
 
 # Display chart
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ==================== Statistics ====================
 
@@ -611,7 +611,7 @@ for col in ['open', 'high', 'low', 'close']:
     latest_candles[col] = latest_candles[col].apply(lambda x: f"${x:,.2f}")
 latest_candles['volume'] = latest_candles['volume'].apply(lambda x: f"{x:,.2f}")
 
-st.dataframe(latest_candles, use_container_width=True, hide_index=True)
+st.dataframe(latest_candles, width="stretch", hide_index=True)
 
 # ==================== Auto Refresh ====================
 

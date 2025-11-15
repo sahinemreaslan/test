@@ -258,7 +258,7 @@ with tab1:
                 height=400
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No closed trades yet")
     else:
@@ -309,7 +309,7 @@ with tab2:
             height=400
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Confidence over time
         st.subheader("Signal Confidence Over Time")
@@ -333,7 +333,7 @@ with tab2:
             height=300
         )
 
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, width="stretch")
     else:
         st.info("No signal data available")
 
@@ -369,10 +369,10 @@ with tab3:
                 height=400
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             # Show table
-            st.dataframe(regime_stats, use_container_width=True)
+            st.dataframe(regime_stats, width="stretch")
         else:
             st.info("Not enough trade data")
     else:
@@ -403,7 +403,7 @@ with tab4:
                 height=400
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No closed trades yet")
     else:
@@ -435,7 +435,7 @@ if not trades_df.empty:
 
     st.dataframe(
         display_df.style.apply(highlight_pnl, axis=1),
-        use_container_width=True,
+        width="stretch",
         height=400
     )
 else:
@@ -459,7 +459,7 @@ if not signals_df.empty:
     if 'confidence' in display_signals.columns:
         display_signals['confidence'] = display_signals['confidence'].apply(lambda x: f"{x:.1%}")
 
-    st.dataframe(display_signals, use_container_width=True, height=400)
+    st.dataframe(display_signals, width="stretch", height=400)
 else:
     st.info("No signals yet")
 
