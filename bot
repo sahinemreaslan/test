@@ -1,0 +1,399 @@
+#!/bin/bash
+
+# Bitcoin Trading Bot - Unified Control Script
+# Usage: ./bot [command]
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIVE_DIR="$SCRIPT_DIR/live_trading"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Helper functions
+print_header() {
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}  $1"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+# Commands
+cmd_help() {
+    cat << EOF
+🤖 Bitcoin Trading Bot - Control Script
+
+USAGE:
+    ./bot [command]
+
+COMMANDS:
+    setup              İlk kurulum (dependencies + model eğitimi)
+    train              Model eğitimi (7 yıllık data)
+
+    testnet            Testnet bot başlat (sahte para)
+    production         Production bot başlat (gerçek para) ⚠️
+
+    dashboard          Metrics dashboard başlat (port 8501)
+    chart              Chart dashboard başlat (port 8502)
+    dashboards         Her iki dashboard'u başlat
+
+    test               Binance API bağlantısını test et
+    backtest           Backtest çalıştır (walk-forward)
+
+    stop               Tüm çalışan botları ve dashboard'ları durdur
+    status             Çalışan servisleri göster
+    logs               Bot loglarını göster
+
+    help               Bu yardım mesajını göster
+
+EXAMPLES:
+    # İlk kurulum
+    ./bot setup
+
+    # Testnet'te başla
+    ./bot testnet
+
+    # Dashboard'ları aç
+    ./bot dashboards
+
+    # Production (dikkatli!)
+    ./bot production
+
+QUICK START:
+    1. ./bot setup          # Kurulum (10-30 dakika)
+    2. ./bot testnet        # Bot başlat (testnet)
+    3. ./bot dashboards     # Dashboard'ları aç (yeni terminal)
+    4. Browser: http://localhost:8501 ve :8502
+EOF
+}
+
+cmd_setup() {
+    print_header "🚀 İlk Kurulum Başlıyor"
+
+    # Check Python
+    if ! command -v python3 &> /dev/null; then
+        print_error "Python 3 bulunamadı. Önce Python 3.8+ yükleyin."
+        exit 1
+    fi
+
+    print_info "Python versiyonu: $(python3 --version)"
+
+    # Install dependencies
+    print_info "Dependencies yükleniyor..."
+    pip install -r "$SCRIPT_DIR/requirements.txt" || {
+        print_error "Dependencies yüklenemedi"
+        exit 1
+    }
+    print_success "Dependencies yüklendi"
+
+    # Create .env if not exists
+    if [ ! -f "$LIVE_DIR/.env" ]; then
+        print_info ".env dosyası oluşturuluyor..."
+        cp "$LIVE_DIR/.env.example" "$LIVE_DIR/.env"
+        print_warning ".env dosyasına API keylerini eklemeyi unutma!"
+        print_info "Testnet keyleri: https://testnet.binancefuture.com/"
+    fi
+
+    # Train model
+    print_info "Model eğitimi başlıyor (10-30 dakika)..."
+    cmd_train
+
+    print_success "Kurulum tamamlandı!"
+    echo ""
+    print_info "Sonraki adımlar:"
+    echo "  1. .env dosyasına testnet API keylerini ekle: nano live_trading/.env"
+    echo "  2. Botu başlat: ./bot testnet"
+    echo "  3. Dashboard'ları aç: ./bot dashboards"
+}
+
+cmd_train() {
+    print_header "🧠 Model Eğitimi (7 Yıllık Data)"
+
+    cd "$SCRIPT_DIR"
+
+    if [ ! -f "btc_15m_data_2018_to_2025.csv" ]; then
+        print_error "btc_15m_data_2018_to_2025.csv bulunamadı!"
+        exit 1
+    fi
+
+    print_info "Eğitim başlıyor... (bu biraz sürebilir)"
+
+    python3 << 'PYTHON_SCRIPT'
+import sys
+import yaml
+import pickle
+from src.data.data_loader import DataLoader
+from src.features.feature_engineering import FeatureEngineering
+from src.advanced.integrated_system import IntegratedTradingSystem
+
+print("📊 Data yükleniyor...")
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+loader = DataLoader(config)
+data = loader.load_data()
+print(f"✅ {len(data)} candle yüklendi")
+
+print("🔧 Feature engineering...")
+fe = FeatureEngineering(config)
+multi_tf_data = fe.create_multi_timeframe_features(data)
+features, target = fe.prepare_ml_dataset(multi_tf_data)
+print(f"✅ {len(features.columns)} feature oluşturuldu")
+
+print("🤖 Model eğitiliyor...")
+system = IntegratedTradingSystem(config)
+system.train(features, target)
+print("✅ Model eğitildi")
+
+print("💾 Model kaydediliyor...")
+import os
+os.makedirs('models', exist_ok=True)
+with open('models/advanced_system_latest.pkl', 'wb') as f:
+    pickle.dump(system, f)
+print("✅ Model kaydedildi: models/advanced_system_latest.pkl")
+PYTHON_SCRIPT
+
+    if [ $? -eq 0 ]; then
+        print_success "Model eğitimi tamamlandı!"
+    else
+        print_error "Model eğitimi başarısız oldu"
+        exit 1
+    fi
+}
+
+cmd_testnet() {
+    print_header "🧪 Testnet Bot Başlatılıyor"
+
+    # Check .env
+    if [ ! -f "$LIVE_DIR/.env" ]; then
+        print_error ".env dosyası bulunamadı!"
+        print_info "Önce kurulum yapın: ./bot setup"
+        exit 1
+    fi
+
+    # Check model
+    if [ ! -f "$SCRIPT_DIR/models/advanced_system_latest.pkl" ]; then
+        print_error "Model bulunamadı!"
+        print_info "Önce model eğitin: ./bot train"
+        exit 1
+    fi
+
+    # Check config
+    if ! grep -q "testnet: true" "$LIVE_DIR/config_live.yaml"; then
+        print_warning "config_live.yaml'da testnet: false görünüyor"
+        print_warning "Testnet için testnet: true olmalı"
+    fi
+
+    print_success "Testnet bot başlıyor..."
+    print_info "Ctrl+C ile durdurun"
+    print_info "Dashboard: ./bot dashboards (başka terminalde)"
+    echo ""
+
+    cd "$LIVE_DIR"
+    python3 live_trader.py
+}
+
+cmd_production() {
+    print_header "⚠️  PRODUCTION BOT - GERÇEK PARA!"
+
+    echo ""
+    print_warning "GERÇEK PARA İLE TRADING YAPACAKSINIZ!"
+    print_warning "Tüm riski kabul ediyor musunuz?"
+    echo ""
+    print_info "Production checklist:"
+    echo "  ✓ Testnet'te en az 1 hafta test ettiniz"
+    echo "  ✓ API key IP whitelist eklendi"
+    echo "  ✓ 2FA aktif"
+    echo "  ✓ Withdrawal izni KAPALI"
+    echo "  ✓ .env.production dosyası hazır"
+    echo "  ✓ config_production.yaml kontrol edildi"
+    echo ""
+
+    read -p "Production başlatmak için 'START PRODUCTION' yazın: " confirm
+
+    if [ "$confirm" != "START PRODUCTION" ]; then
+        print_info "İptal edildi. Güvende kaldınız!"
+        exit 0
+    fi
+
+    # Check .env.production
+    if [ ! -f "$LIVE_DIR/.env.production" ]; then
+        print_error ".env.production bulunamadı!"
+        print_info "Önce .env.production oluşturun"
+        exit 1
+    fi
+
+    # Check model
+    if [ ! -f "$SCRIPT_DIR/models/advanced_system_latest.pkl" ]; then
+        print_error "Model bulunamadı!"
+        exit 1
+    fi
+
+    print_success "Production bot başlıyor..."
+    print_warning "DİKKATLİ OLUN!"
+    echo ""
+
+    cd "$LIVE_DIR"
+    ENV_FILE=.env.production python3 live_trader.py --config config_production.yaml
+}
+
+cmd_dashboard() {
+    print_header "📊 Metrics Dashboard Başlatılıyor"
+
+    print_info "Port: 8501"
+    print_info "URL: http://localhost:8501"
+    print_info "Ctrl+C ile durdurun"
+    echo ""
+
+    cd "$LIVE_DIR"
+    streamlit run dashboard.py --server.port 8501
+}
+
+cmd_chart() {
+    print_header "📈 Chart Dashboard Başlatılıyor"
+
+    print_info "Port: 8502"
+    print_info "URL: http://localhost:8502"
+    print_info "Ctrl+C ile durdurun"
+    echo ""
+
+    cd "$LIVE_DIR"
+    streamlit run chart_dashboard.py --server.port 8502
+}
+
+cmd_dashboards() {
+    print_header "📊 Her İki Dashboard Başlatılıyor"
+
+    print_info "Terminal 1: Metrics Dashboard (port 8501)"
+    print_info "Terminal 2: Chart Dashboard (port 8502)"
+    echo ""
+    print_warning "Her dashboard için AYRI terminal açın:"
+    echo ""
+    echo "  Terminal 1: ./bot dashboard"
+    echo "  Terminal 2: ./bot chart"
+    echo ""
+    print_info "Ya da arka planda başlat:"
+    echo "  ./bot dashboard > /dev/null 2>&1 &"
+    echo "  ./bot chart > /dev/null 2>&1 &"
+}
+
+cmd_test() {
+    print_header "🔌 API Bağlantı Testi"
+
+    if [ ! -f "$LIVE_DIR/.env" ]; then
+        print_error ".env dosyası bulunamadı!"
+        exit 1
+    fi
+
+    cd "$LIVE_DIR"
+    python3 test_connection.py
+}
+
+cmd_backtest() {
+    print_header "📊 Backtest (Walk-Forward Analysis)"
+
+    cd "$SCRIPT_DIR"
+    python3 run_walk_forward.py
+}
+
+cmd_stop() {
+    print_header "🛑 Servisleri Durduruyor"
+
+    # Stop Python processes
+    print_info "Bot ve dashboard'ları durduruyor..."
+    pkill -f "live_trader.py" || true
+    pkill -f "streamlit" || true
+
+    print_success "Tüm servisler durduruldu"
+}
+
+cmd_status() {
+    print_header "📊 Servis Durumu"
+
+    echo ""
+    print_info "Çalışan Python processler:"
+    pgrep -af "live_trader.py" || echo "  Bot çalışmıyor"
+    pgrep -af "streamlit.*dashboard" || echo "  Dashboard çalışmıyor"
+    pgrep -af "streamlit.*chart" || echo "  Chart dashboard çalışmıyor"
+    echo ""
+}
+
+cmd_logs() {
+    print_header "📜 Bot Logları"
+
+    if [ -f "$LIVE_DIR/logs/live_trader.log" ]; then
+        tail -f "$LIVE_DIR/logs/live_trader.log"
+    else
+        print_warning "Log dosyası bulunamadı"
+        print_info "Bot çalışmaya başladıktan sonra loglar görünecek"
+    fi
+}
+
+# Main
+case "${1:-help}" in
+    setup)
+        cmd_setup
+        ;;
+    train)
+        cmd_train
+        ;;
+    testnet)
+        cmd_testnet
+        ;;
+    production)
+        cmd_production
+        ;;
+    dashboard)
+        cmd_dashboard
+        ;;
+    chart)
+        cmd_chart
+        ;;
+    dashboards)
+        cmd_dashboards
+        ;;
+    test)
+        cmd_test
+        ;;
+    backtest)
+        cmd_backtest
+        ;;
+    stop)
+        cmd_stop
+        ;;
+    status)
+        cmd_status
+        ;;
+    logs)
+        cmd_logs
+        ;;
+    help|--help|-h)
+        cmd_help
+        ;;
+    *)
+        print_error "Bilinmeyen komut: $1"
+        echo ""
+        cmd_help
+        exit 1
+        ;;
+esac

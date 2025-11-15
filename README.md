@@ -29,31 +29,36 @@
 ### 5 Dakikada Başla
 
 ```bash
-# 1. Kurulum
+# 1. Repo klonla
 git clone <repo-url>
 cd test
-pip install -r requirements.txt
 
-# 2. Modeli eğit (7 yıllık data ile)
-./train_offline.sh
+# 2. Tam kurulum (dependencies + model eğitimi)
+./bot setup
 
-# 3. Testnet API keylerini al
+# 3. Testnet API keylerini al ve .env'e ekle
 # https://testnet.binancefuture.com/
+nano live_trading/.env
 
-# 4. .env dosyası oluştur
-cd live_trading
-cp .env.example .env
-nano .env  # API keylerini ekle
+# 4. Botu başlat
+./bot testnet
 
-# 5. Botu başlat
-./run_live.sh
-
-# 6. Dashboard'ları aç (yeni terminallerde)
-./start_dashboard.sh        # Port 8501
-./start_chart_dashboard.sh  # Port 8502
+# 5. Dashboard'ları aç (yeni terminal)
+./bot dashboards
 ```
 
 **✅ Hazır! Bot testnet'te çalışıyor.**
+
+**Tüm komutlar:**
+```bash
+./bot help     # Yardım
+./bot setup    # İlk kurulum
+./bot testnet  # Testnet bot
+./bot production  # Production bot (dikkatli!)
+./bot dashboard   # Metrics dashboard
+./bot chart       # Chart dashboard
+./bot stop        # Durdur
+```
 
 ---
 
@@ -97,69 +102,54 @@ nano .env  # API keylerini ekle
 
 ## 💻 Kurulum
 
-### Gereksinimler
+### Tek Komutla Kurulum
 
 ```bash
-Python 3.8+
-pip
-git
-```
-
-### Adım 1: Repository Klonla
-
-```bash
+# Repo klonla
 git clone <repo-url>
 cd test
+
+# Otomatik kurulum (dependencies + model eğitimi)
+./bot setup
 ```
 
-### Adım 2: Bağımlılıkları Yükle
+Bu komut:
+- ✅ Python dependencies yükler
+- ✅ .env dosyası oluşturur
+- ✅ 7 yıllık data ile model eğitir (10-30 dakika)
+- ✅ models/advanced_system_latest.pkl oluşturur
 
-```bash
-pip install -r requirements.txt
-```
+### API Keyleri Al
 
-### Adım 3: Model Eğit (Önemli!)
+**TESTNET (Önerilen - Sahte Para):**
+1. https://testnet.binancefuture.com/ → GitHub ile giriş
+2. API Management → Create API Key
+3. Keyleri kopyala
 
-```bash
-# 7 yıllık data ile model eğitimi (2018-2025)
-./train_offline.sh
-```
-
-Bu işlem:
-- Bitcoin 15m data'sını yükler (7 yıl)
-- 11 timeframe'e dönüştürür
-- 445+ feature oluşturur
-- Ensemble model eğitir (XGB+LGB+CatBoost)
-- `models/advanced_system_latest.pkl` oluşturur
-
-**Süre:** 10-30 dakika (CPU'ya bağlı)
-
-### Adım 4: API Keyleri Al
-
-**TESTNET (Önerilen):**
-1. https://testnet.binancefuture.com/ adresine git
-2. GitHub ile giriş yap
-3. API Management → Create API Key
-4. Keylerini kopyala
-
-**PRODUCTION (Dikkatli!):**
+**PRODUCTION (Gerçek Para - Dikkatli!):**
 1. https://www.binance.com/en/my/settings/api-management
-2. Create API → Futures Trading (Withdrawal KAPALI!)
-3. IP Whitelist ekle
-4. 2FA aktif et
+2. Create API → **Sadece** "Futures Trading" izni
+3. **Withdrawal izni KAPALI** ⚠️
+4. IP Whitelist ekle (zorunlu)
+5. 2FA aktif et
 
-### Adım 5: .env Dosyası Oluştur
+### .env Dosyasını Doldur
 
 ```bash
-cd live_trading
-cp .env.example .env
-nano .env
+nano live_trading/.env
 ```
 
-Şunu ekle:
+**Testnet için:**
 ```bash
-BINANCE_API_KEY=your_testnet_api_key_here
+BINANCE_API_KEY=your_testnet_key_here
 BINANCE_API_SECRET=your_testnet_secret_here
+```
+
+**Production için:**
+```bash
+# .env.production dosyasına
+BINANCE_API_KEY=your_production_key_here
+BINANCE_API_SECRET=your_production_secret_here
 ```
 
 ✅ Kurulum tamamlandı!
@@ -185,8 +175,7 @@ trading:
 **2. Botu Başlat**
 
 ```bash
-cd live_trading
-./run_live.sh
+./bot testnet
 ```
 
 **Çıktı:**
@@ -206,14 +195,17 @@ Paper Trading: ✅ Yes (No actual trades)
 📊 Signal: BUY | Confidence: 0.78 | Regime: Bull Market
 ```
 
-**3. Dashboard'ları Başlat**
+**3. Dashboard'ları Başlat (Yeni Terminal)**
 
 ```bash
-# Terminal 2
-./start_dashboard.sh
+# Seçenek 1: Her ikisi için talimat göster
+./bot dashboards
 
-# Terminal 3
-./start_chart_dashboard.sh
+# Seçenek 2: Metrics dashboard
+./bot dashboard
+
+# Seçenek 3: Chart dashboard
+./bot chart
 ```
 
 - **Dashboard (8501):** http://localhost:8501 - Metrikler, PnL, win rate
@@ -223,15 +215,15 @@ Paper Trading: ✅ Yes (No actual trades)
 
 ⚠️ **ÖNCE TESTNET'TE EN AZ 1 HAFTA TEST ET!**
 
-**1. Production Config Oluştur**
+**1. Production API Keyleri**
 
-`live_trading/.env.production`:
+`live_trading/.env.production` oluştur:
 ```bash
 BINANCE_API_KEY=your_production_api_key
 BINANCE_API_SECRET=your_production_secret
 ```
 
-**2. Production Ayarları**
+**2. Production Config Kontrol**
 
 `live_trading/config_production.yaml`:
 ```yaml
@@ -246,28 +238,28 @@ risk_management:
   circuit_breaker_loss_pct: 0.15  # Acil stop %15
 ```
 
-**3. Güvenlik Kontrolleri**
+**3. Güvenlik Checklist**
 
 ```bash
-✅ API key IP whitelist eklendi mi?
-✅ 2FA aktif mi?
-✅ Withdrawal izni KAPALI mı?
-✅ Sadece "Futures Trading" izni var mı?
-✅ İlk sermayeni çıkardın mı?
+✅ Testnet'te 1+ hafta test edildi
+✅ API key IP whitelist eklendi
+✅ 2FA aktif
+✅ Withdrawal izni KAPALI
+✅ Sadece "Futures Trading" izni
+✅ Küçük sermaye ile başlanıyor (100-500 USDT)
 ```
 
 **4. Production Başlat**
 
 ```bash
-cd live_trading
-./run_production.sh
+./bot production
 ```
 
-Script sana:
-- Güvenlik kontrolü yapar
-- Config'i gösterir
-- "START PRODUCTION" yazmanı ister
-- Ondan sonra başlar
+Script:
+- ⚠️ Güvenlik uyarıları gösterir
+- 📋 Checklist gösterir
+- ✍️ "START PRODUCTION" yazmanı ister
+- 🚀 Onaydan sonra başlar
 
 ### Bot Nasıl Çalışır?
 
@@ -298,8 +290,7 @@ Her 15 dakikada bir (candle close):
 
 **Başlatma:**
 ```bash
-cd live_trading
-./start_dashboard.sh
+./bot dashboard
 ```
 
 **Açılır:** http://localhost:8501
@@ -348,8 +339,7 @@ cd live_trading
 
 **Başlatma:**
 ```bash
-cd live_trading
-./start_chart_dashboard.sh
+./bot chart
 ```
 
 **Açılır:** http://localhost:8502
@@ -957,28 +947,37 @@ A: Ayda bir veya piyasa değiştiğinde (yeni trend, regime change).
 ## 🚀 Başla!
 
 ```bash
-# 1. Kurulum
-git clone <repo-url> && cd test && pip install -r requirements.txt
+# 1. Kurulum (tek komut!)
+git clone <repo-url> && cd test && ./bot setup
 
-# 2. Model eğit
-./train_offline.sh
-
-# 3. Testnet keyleri al
+# 2. Testnet keyleri al
 # https://testnet.binancefuture.com/
 
-# 4. .env oluştur
-cd live_trading && cp .env.example .env && nano .env
+# 3. .env'e keyleri ekle
+nano live_trading/.env
 
-# 5. Botu başlat
-./run_live.sh
+# 4. Botu başlat
+./bot testnet
 
-# 6. Dashboard'ları aç
-./start_dashboard.sh          # Terminal 2
-./start_chart_dashboard.sh    # Terminal 3
+# 5. Dashboard'ları aç (yeni terminal)
+./bot dashboard    # Terminal 2
+./bot chart        # Terminal 3
 
-# 7. Tarayıcıda aç
+# 6. Tarayıcıda aç
 # http://localhost:8501 (Metrics)
 # http://localhost:8502 (Charts)
+```
+
+**Tüm komutlar:**
+```bash
+./bot help        # Yardım
+./bot setup       # Kurulum
+./bot testnet     # Testnet bot
+./bot production  # Production bot
+./bot dashboard   # Metrics dashboard
+./bot chart       # Chart dashboard
+./bot stop        # Durdur
+./bot status      # Durum
 ```
 
 **✅ Hazırsın! İyi kazançlar! 💰**
