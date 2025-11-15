@@ -145,6 +145,9 @@ if df is None or df.empty:
     st.error("❌ Could not fetch chart data")
     st.stop()
 
+# Reset index to make timestamp a column (it's returned as index from binance_connector)
+df = df.reset_index()
+
 # ==================== Price Display ====================
 
 col1, col2, col3, col4 = st.columns(4)
