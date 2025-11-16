@@ -63,7 +63,8 @@ class WalkForwardAnalyzer:
 
         # Convert timeframes
         timeframes = self.config.get('timeframes', {}).get('all', [])
-        converter = TimeframeConverter(self.base_data)
+        base_timeframe = self.config.get('data', {}).get('base_timeframe', '15m')
+        converter = TimeframeConverter(self.base_data, base_timeframe)
         self.timeframe_data = converter.convert_all_timeframes(timeframes)
 
         # Process all timeframes

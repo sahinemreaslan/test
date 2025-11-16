@@ -63,8 +63,9 @@ def main():
     # Step 2: Convert timeframes
     logger.info("\n[Step 2/6] Converting to multiple timeframes...")
     timeframes = config.get('timeframes', {}).get('all', [])
+    base_timeframe = config.get('data', {}).get('base_timeframe', '15m')
 
-    converter = TimeframeConverter(base_data)
+    converter = TimeframeConverter(base_data, base_timeframe)
     timeframe_data = converter.convert_all_timeframes(timeframes)
 
     logger.info(f"Converted to {len(timeframe_data)} timeframes")

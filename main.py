@@ -157,8 +157,9 @@ class TradingSystemOrchestrator:
     def convert_timeframes(self):
         """Convert to multiple timeframes"""
         timeframes = self.config.get('timeframes', {}).get('all', [])
+        base_timeframe = self.config.get('data', {}).get('base_timeframe', '15m')
 
-        self.timeframe_converter = TimeframeConverter(self.base_data)
+        self.timeframe_converter = TimeframeConverter(self.base_data, base_timeframe)
         self.timeframe_data = self.timeframe_converter.convert_all_timeframes(timeframes)
 
         logger.info(f"Converted to {len(self.timeframe_data)} timeframes")

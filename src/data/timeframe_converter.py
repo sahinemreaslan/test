@@ -30,14 +30,16 @@ class TimeframeConverter:
         '3M': '3MS'   # Quarterly
     }
 
-    def __init__(self, base_df: pd.DataFrame):
+    def __init__(self, base_df: pd.DataFrame, base_timeframe: str = '15m'):
         """
         Initialize with base timeframe data
 
         Args:
             base_df: DataFrame with OHLCV data (must have datetime index)
+            base_timeframe: Base timeframe of the input data (default: '15m')
         """
         self.base_df = base_df.copy()
+        self.base_timeframe = base_timeframe
         self.converted_data: Dict[str, pd.DataFrame] = {}
 
     def convert_to_timeframe(self, timeframe: str) -> pd.DataFrame:
@@ -53,6 +55,28 @@ class TimeframeConverter:
         if timeframe not in self.TIMEFRAME_MAP:
             raise ValueError(f"Unsupported timeframe: {timeframe}. "
                            f"Supported: {list(self.TIMEFRAME_MAP.keys())}")
+
+        # If converting to the same timeframe as base data, just copy it
+        if timeframe == self.base_timeframe:
+            logger.info(f"Timeframe {timeframe} matches base timeframe, using original data")
+            resampled = self.base_df[['open', 'high', 'low', 'close', 'volume']].copy()
+
+            # Add derived features if they don't exist
+            if 'returns' not in resampled.columns:
+                resampled['returns'] = resampled['close'].pct_change()
+            if 'log_returns' not in resampled.columns:
+                resampled['log_returns'] = np.log(resampled['close'] / resampled['close'].shift(1))
+            if 'range' not in resampled.columns:
+                resampled['range'] = resampled['high'] - resampled['low']
+            if 'body' not in resampled.columns:
+                resampled['body'] = abs(resampled['close'] - resampled['open'])
+            if 'body_pct' not in resampled.columns:
+                resampled['body_pct'] = resampled['body'] / resampled['range']
+            if 'is_bullish' not in resampled.columns:
+                resampled['is_bullish'] = (resampled['close'] > resampled['open']).astype(int)
+
+            logger.info(f"Using base data for {timeframe}: {len(resampled)} candles")
+            return resampled
 
         rule = self.TIMEFRAME_MAP[timeframe]
 

@@ -23,10 +23,10 @@ def test_data_loading():
 def test_timeframe_conversion(base_df):
     """Test timeframe conversion"""
     print("\n=== Testing Timeframe Conversion ===")
-    converter = TimeframeConverter(base_df)
+    converter = TimeframeConverter(base_df, base_timeframe='15m')
 
-    # Test a few timeframes
-    test_tfs = ['30m', '1h', '4h', '1D']
+    # Test a few timeframes (including base timeframe)
+    test_tfs = ['15m', '30m', '1h', '4h', '1D']
     for tf in test_tfs:
         converted = converter.convert_to_timeframe(tf)
         print(f"✓ {tf}: {len(converted)} candles")
