@@ -16,7 +16,7 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.advanced.integrated_system import AdvancedTradingSystem
-from src.features.feature_engineering import FeatureEngineering
+from src.features.feature_engineering import FeatureEngineer
 from src.data.timeframe_converter import TimeframeConverter
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,7 @@ class StrategyExecutor:
             config: Configuration dictionary
         """
         self.config = config
-        self.feature_eng = FeatureEngineering(config)
-        self.tf_converter = TimeframeConverter()
+        self.feature_eng = FeatureEngineer(config)
 
         # Advanced trading system
         self.advanced_system = AdvancedTradingSystem(config)
@@ -54,23 +53,51 @@ class StrategyExecutor:
         logger.info("🎓 Training strategy on historical data...")
 
         try:
+            # Prepare data - ensure datetime index
+            if not isinstance(historical_data.index, pd.DatetimeIndex):
+                if 'timestamp' in historical_data.columns:
+                    historical_data = historical_data.set_index('timestamp')
+                elif 'date' in historical_data.columns:
+                    historical_data = historical_data.set_index('date')
+
             # Convert to multiple timeframes
             logger.info("Converting to multiple timeframes...")
-            all_timeframes = self.tf_converter.convert_all_timeframes(
-                historical_data,
-                base_timeframe='15min'
-            )
+            base_timeframe = self.config.get('data', {}).get('base_timeframe', '15m')
+            tf_converter = TimeframeConverter(historical_data, base_timeframe)
 
-            # Create features
-            logger.info("Creating features...")
-            features, target, df = self.feature_eng.create_features(all_timeframes)
+            # Get timeframes from config
+            timeframes = self.config.get('timeframes', {}).get('all', [
+                '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
+            ])
+            all_timeframes_raw = tf_converter.convert_all_timeframes(timeframes)
+
+            # Process each timeframe (calculate indicators)
+            logger.info("Processing indicators for each timeframe...")
+            all_timeframes = {}
+            for tf, tf_df in all_timeframes_raw.items():
+                all_timeframes[tf] = self.feature_eng.process_single_timeframe(tf_df, tf)
+
+            # Create multi-timeframe feature matrix
+            logger.info("Creating multi-timeframe features...")
+            reference_tf = self.config.get('timeframes', {}).get('signal', '15m')
+            df = self.feature_eng.create_multi_timeframe_features(all_timeframes, reference_tf)
+
+            # Prepare ML dataset (features and target)
+            logger.info("Preparing ML dataset...")
+            features, target = self.feature_eng.prepare_ml_dataset(
+                df,
+                target_method='forward_returns',
+                target_horizon=1,
+                target_threshold=0.001
+            )
 
             logger.info(f"Features created: {features.shape}")
             logger.info(f"Target distribution: {target.value_counts().to_dict()}")
 
-            # Train advanced system
+            # Train advanced system (pass original OHLCV data for regime detection)
             logger.info("Training advanced system...")
-            self.advanced_system.train(df, features, target, verbose=True)
+            reference_ohlcv = all_timeframes[reference_tf]  # Original OHLCV with indicators
+            self.advanced_system.train(reference_ohlcv, features, target, verbose=True)
 
             self.trained = True
             logger.info("✅ Strategy training complete!")
@@ -96,17 +123,43 @@ class StrategyExecutor:
             return 0, {}
 
         try:
+            # Prepare data - ensure datetime index
+            if not isinstance(current_data.index, pd.DatetimeIndex):
+                if 'timestamp' in current_data.columns:
+                    current_data = current_data.set_index('timestamp')
+                elif 'date' in current_data.columns:
+                    current_data = current_data.set_index('date')
+
             # Convert to multiple timeframes
-            all_timeframes = self.tf_converter.convert_all_timeframes(
-                current_data,
-                base_timeframe='15min'
+            base_timeframe = self.config.get('data', {}).get('base_timeframe', '15m')
+            tf_converter = TimeframeConverter(current_data, base_timeframe)
+
+            # Get timeframes from config
+            timeframes = self.config.get('timeframes', {}).get('all', [
+                '3M', '1M', '1W', '1D', '12h', '8h', '4h', '2h', '1h', '30m', '15m'
+            ])
+            all_timeframes_raw = tf_converter.convert_all_timeframes(timeframes)
+
+            # Process each timeframe (calculate indicators)
+            all_timeframes = {}
+            for tf, tf_df in all_timeframes_raw.items():
+                all_timeframes[tf] = self.feature_eng.process_single_timeframe(tf_df, tf)
+
+            # Create multi-timeframe feature matrix
+            reference_tf = self.config.get('timeframes', {}).get('signal', '15m')
+            df = self.feature_eng.create_multi_timeframe_features(all_timeframes, reference_tf)
+
+            # Prepare ML dataset (features and target)
+            features, target = self.feature_eng.prepare_ml_dataset(
+                df,
+                target_method='forward_returns',
+                target_horizon=1,
+                target_threshold=0.001
             )
 
-            # Create features
-            features, target, df = self.feature_eng.create_features(all_timeframes)
-
-            # Generate signals
-            signals = self.advanced_system.generate_signals(df, features)
+            # Generate signals (pass OHLCV data for regime detection)
+            reference_ohlcv = all_timeframes[reference_tf]  # Original OHLCV with indicators
+            signals = self.advanced_system.generate_signals(reference_ohlcv, features)
 
             # Get last signal
             signal = int(signals.iloc[-1])
@@ -116,7 +169,11 @@ class StrategyExecutor:
 
             # Get ensemble probability (confidence)
             ensemble_proba = self.advanced_system.ensemble_model.predict_proba(features)
-            confidence = float(ensemble_proba.iloc[-1])
+            # Handle both DataFrame/Series and numpy array
+            if hasattr(ensemble_proba, 'iloc'):
+                confidence = float(ensemble_proba.iloc[-1])
+            else:
+                confidence = float(ensemble_proba[-1])
 
             metadata = {
                 'signal': signal,
